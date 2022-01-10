@@ -1,13 +1,13 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
-FROM python:3.10.1-alpine
-WORKDIR /code
 
-RUN apk --update --upgrade add --no-cache  gcc musl-dev jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev
+FROM python:3.8-slim-buster
 
-RUN python -m pip install --upgrade pip
+WORKDIR /python-docker
+
 COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-EXPOSE 7007
+RUN pip3 install -r requirements.txt
+
 COPY . .
-CMD [ "python", "wsgi.py" ]
+
+CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
