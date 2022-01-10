@@ -1,12 +1,9 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
-FROM python:3.8-slim-buster
+FROM python:3.8
+ADD . /code
+WORKDIR /code
 
-WORKDIR /python-docker
-
-COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
-COPY . .
-
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+CMD python wsgi.py
