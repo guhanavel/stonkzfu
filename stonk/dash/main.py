@@ -88,7 +88,7 @@ def load_data(Ticker):
     return data
 
 
-NASQ = read_csv(r"\static\constituents_csv.csv")
+NASQ = read_csv(r"stonk/static/constituents_csv.csv")
 opt = lookup(NASQ)
 TODAY = date.date.today()
 today = TODAY.strftime('%Y-%m-%d')
