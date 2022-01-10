@@ -67,3 +67,4 @@ wrapt==1.13.3
 yahoo-fin==0.8.9.1
 yfinance==0.1.68
 zipp==3.7.0
+gunicorn
