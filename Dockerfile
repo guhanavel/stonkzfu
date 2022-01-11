@@ -1,13 +1,9 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
-FROM python:3.10.1-alpine
+FROM python:3.8
+ADD . /code
 WORKDIR /code
 
-RUN apk --update --upgrade add --no-cache  gcc musl-dev jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev
+RUN pip3 install -r requirements.txt
 
-RUN python -m pip install --upgrade pip
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-EXPOSE 7007
-COPY . .
-CMD [ "python", "wsgi.py" ]
+CMD python wsgi.py
