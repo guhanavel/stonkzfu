@@ -9,6 +9,7 @@ from dash import dash_table
 from dash.dependencies import Input, Output, State
 import datetime as date, timedelta
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import pandas_market_calendars as mcal
 import pandas as pd
 from pmdarima.arima import auto_arima
@@ -43,7 +44,6 @@ def gen(Ticker):
     dic["Info"].append(html.A(html.P(infoo['website']), href=infoo['website']))
     dic["Info"].append(infoo['overallRisk'])
     dic["Info"].append(stock_info.get_next_earnings_date(Ticker).strftime("%Y-%m-%d %H:%M:%S"))
-
     return dic
 
 
@@ -161,7 +161,7 @@ def dash_app(server):
                              , className="six columns", style={"text-align": "left", "font-size": "large"}),
                      ]), width={"size": 6}, xs=12, sm=12, md=12, lg=6, xl=6),
                      dbc.Col(html.Div([
-                         html.H4('Predictions:'),
+                         html.H4('Stonkzfu.com Predictions:'),
                          dash_table.DataTable(
                              id='table',
                              style_table={"height": "auto", },
@@ -238,27 +238,32 @@ def dash_app(server):
             raise dash.exceptions.PreventUpdate
         else:
             dat = load_data(value)
-            data = load_data(value).reset_index()
             MA_200 = dat.rolling(window=200).mean()
             MA_50 = dat.rolling(window=50).mean()
-            fig = go.Figure()
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
-                                     showlegend=True))
+                                     mode='lines+markers',
+                                     showlegend=True),secondary_y=False)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_200.Close),
                                      visible=True,
                                      name="MA_200",
-                                     showlegend=True))
+                                     showlegend=True),secondary_y=False)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_50.Close),
                                      visible=True,
                                      name="MA_50",
-                                     showlegend=True))
+                                     showlegend=True,
+                                     ), secondary_y=False)
+            fig.add_trace(go.Bar(x=list(dat.index),
+                                 y=list(dat.Volume),
+                                 name="Volume", ),
+                          secondary_y=True)
 
             fig.update_layout(
                 autosize=False,
@@ -296,7 +301,8 @@ def dash_app(server):
                     y=0.5,
                     traceorder="normal",
                 )
-            )
+            ),
+            fig.update_yaxes(range=[0,900000000],secondary_y=True,visible=False)
 
             return fig
 
