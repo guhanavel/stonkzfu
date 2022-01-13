@@ -1,8 +1,6 @@
 import dash
 import csv
 from yahoo_fin import stock_info
-import pandas as pd
-from dash import callback_context, dcc, html
 import time
 import yfinance as yf
 from dash import dcc, html
@@ -54,19 +52,6 @@ def su(Ticker):
     return info[0]
 
 
-def summary(st):
-    count = 0
-    index = []
-    for s in range(len(st)):
-        if st[s] == ".":
-            count += 1
-            index.append(s)
-    if count <= 3:
-        return st
-    else:
-        return st[:index[1] + 1] + st[index[-3] + 1:index[-1] + 1]
-
-
 def earnings(Ticker, types):
     return stock_info.get_earnings(Ticker)[types]
 
@@ -83,7 +68,7 @@ def news_api(ne):
 
 def load_data(Ticker):
     coy = yf.Ticker(Ticker)
-    data = coy.history(period="max")
+    data = coy.history(period="2y")
     data.reset_index()
     return data
 
@@ -150,44 +135,6 @@ def dash_app(server):
                  dbc.Col(search_bar, align="left"),
              ),
              dbc.Row(
-                 [
-                     dbc.Col(html.Div([
-                         dcc.Graph(
-
-                             id="col",
-                         ),
-                     ]), xs=6, sm=6, md=6, lg=3, xl=3),
-                     dbc.Col(html.Div([
-                         dcc.Graph(
-
-                             id="open",
-                         ),
-                     ]), xs=6, sm=6, md=6, lg=3, xl=3),
-                     dbc.Col(html.Div([
-                         dcc.Graph(
-
-                             id="high",
-                         ),
-                     ]), xs=6, sm=6, md=6, lg=3, xl=3),
-
-                     dbc.Col(html.Div([
-                         dcc.Graph(
-
-                             id="low",
-                         ),
-                     ]), xs=6, sm=6, md=6, lg=3, xl=3),
-
-                 ]
-             ),
-
-             dbc.Row(
-                 dbc.Col(html.Div([
-                     dcc.Graph(
-
-                         id="vol",
-                     ),
-                 ]), xs=12, sm=12, md=12, lg=12, xl=12), justify='centre'),
-             dbc.Row(
                  dbc.Col(html.Div([
                      html.H4("Stock Performance:"),
                      dcc.Graph(
@@ -195,6 +142,14 @@ def dash_app(server):
                          id="graph_close",
                      ),
                  ]), xs=12, sm=12, md=12, lg=12, xl=12), justify='centre'),
+             dbc.Row(
+                 dbc.Col(
+                     html.Div([
+                         html.H4('About Company'),
+                         html.P(id="infom", style={"font-size": "small"})
+                     ]),
+                 )
+             ),
              dbc.Row(
                  [
 
@@ -263,14 +218,6 @@ def dash_app(server):
                      ]), style={'padding-top': '0.5rem'}, width={"size": 6}, xs=12, sm=12, md=12, lg=6, xl=6),
 
                  ]),
-             dbc.Row(
-                 dbc.Col(
-                     html.Div([
-                         html.H4('About Company'),
-                         html.P(id="infom")
-                     ]),
-                 )
-             )
              ]
 
     content = html.Div(cdivs, style=CONTENT_STYLE)
@@ -292,7 +239,6 @@ def dash_app(server):
         else:
             dat = load_data(value)
             data = load_data(value).reset_index()
-            data = data[["Date", "Close", "Volume"]]
             MA_200 = dat.rolling(window=200).mean()
             MA_50 = dat.rolling(window=50).mean()
             fig = go.Figure()
@@ -316,8 +262,9 @@ def dash_app(server):
 
             fig.update_layout(
                 autosize=False,
-                yaxis=dict(fixedrange=False),
+                yaxis=dict(fixedrange=True),
                 xaxis=dict(
+                    fixedrange=True,
                     rangeselector=dict(
                         buttons=list([
                             dict(count=1,
@@ -339,9 +286,6 @@ def dash_app(server):
                             dict(step='all')
                         ]),
 
-                    ),
-                    rangeslider=dict(
-                        visible=True
                     ),
                     type='date'
                 ),
@@ -369,6 +313,7 @@ def dash_app(server):
                 df = load_data(Ticker)
                 df_close = df['Close']
                 model = auto_arima(df_close, trace=True, error_action='ignore', suppress_warnings=True)
+                print(model.get_params())
                 model.fit(df_close)
                 forecast = model.predict(n_periods=3)
                 trend = []
@@ -449,7 +394,7 @@ def dash_app(server):
         if value is None:
             raise dash.exceptions.PreventUpdate
         else:
-            return summary(su(value))
+            return su(value)
 
     @app.callback(
         [Output("earn", "columns"), Output("earn", "data")],
@@ -466,134 +411,5 @@ def dash_app(server):
             columns = [{"name": i, "id": i} for i in fin.columns]
             t_data = fin.to_dict("records")
             return columns, t_data
-
-    @app.callback(
-        Output("vol", "figure"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def current(n_clicks, value):
-        if value is None:
-            raise dash.exceptions.PreventUpdate
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode="number+delta",
-                value=load_data(value)[-5:].Volume.to_list()[-1],
-                delta={'reference': load_data(value)[-5:].Volume.to_list()[-2], "valueformat": ".0f"},
-                title={'text': "Volume"},
-                domain={'y': [0, 1], 'x': [0.25, 0.75]}
-            ))
-
-            fig.add_trace(go.Scatter(x=list(load_data(value).index),
-                                     y=load_data(value).Volume.to_list()))
-            fig.update_layout(margin=dict(
-                l=0, r=0, t=0, b=0)
-            )
-            return fig
-
-    @app.callback(
-        Output("col", "figure"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def current(n_clicks, value):
-        if value is None:
-            raise dash.exceptions.PreventUpdate
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode="number+delta",
-                value=load_data(value)[-5:].Close.to_list()[-1],
-                delta={'reference': load_data(value)[-5:].Close.to_list()[-2], "valueformat": ".0f"},
-                title={'text': "Close"},
-                domain={'y': [0, 1], 'x': [0.25, 0.75]}
-            ))
-
-            fig.add_trace(go.Scatter(y=load_data(value)[-6:].Close.to_list()))
-            fig.update_layout(xaxis={'range': [1, 5]},
-                              margin=dict(
-                                  l=0, r=0, t=20, b=0
-                              ),
-                              height=250)
-            return fig
-
-    @app.callback(
-        Output("open", "figure"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def current(n_clicks, value):
-        if value is None:
-            raise dash.exceptions.PreventUpdate
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode="number+delta",
-                value=load_data(value)[-5:].Open.to_list()[-1],
-                delta={'reference': load_data(value)[-5:].Open.to_list()[-2], "valueformat": ".0f"},
-                title={'text': "Open"},
-                domain={'y': [0, 1], 'x': [0.25, 0.75]}
-            ))
-
-            fig.add_trace(go.Scatter(y=load_data(value)[-6:].Open.to_list()))
-            fig.update_layout(xaxis={'range': [1, 5]},
-                              margin=dict(
-                                  l=0, r=0, t=20, b=0
-                              ),
-                              height=250)
-            return fig
-
-    @app.callback(
-        Output("high", "figure"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def current(n_clicks, value):
-        if value is None:
-            raise dash.exceptions.PreventUpdate
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode="number+delta",
-                value=load_data(value)[-5:].High.to_list()[-1],
-                delta={'reference': load_data(value)[-5:].High.to_list()[-2], "valueformat": ".0f"},
-                title={'text': "High"},
-                domain={'y': [0, 1], 'x': [0.25, 0.75]}
-            ))
-
-            fig.add_trace(go.Scatter(y=load_data(value)[-6:].High.to_list()))
-            fig.update_layout(xaxis={'range': [1, 5]},
-                              margin=dict(
-                                  l=0, r=0, t=20, b=0
-                              ),
-                              height=250)
-            return fig
-
-    @app.callback(
-        Output("low", "figure"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def current(n_clicks, value):
-        if value is None:
-            raise dash.exceptions.PreventUpdate
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode="number+delta",
-                value=load_data(value)[-5:].Low.to_list()[-1],
-                delta={'reference': load_data(value)[-5:].Low.to_list()[-2], "valueformat": ".0f"},
-                title={'text': "Low"},
-                domain={'y': [0, 1], 'x': [0.25, 0.75]}
-            ))
-
-            fig.add_trace(go.Scatter(y=load_data(value)[-6:].Low.to_list()))
-            fig.update_layout(xaxis={'range': [1, 5]},
-                              margin=dict(
-                                  l=0, r=0, t=20, b=0
-                              ),
-                              height=250)
-            return fig
 
     return app.server
