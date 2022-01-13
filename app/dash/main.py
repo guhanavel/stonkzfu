@@ -302,7 +302,7 @@ def dash_app(server):
                     traceorder="normal",
                 )
             ),
-            fig.update_yaxes(range=[0,900000000],secondary_y=True,visible=False)
+            fig.update_yaxes(range=[0,max(list(dat.Volume))+0.25*max(list(dat.Volume))],secondary_y=True,visible=False)
 
             return fig
 
