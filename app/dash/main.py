@@ -21,14 +21,15 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def read_csv(csvfilename):
+def read_csv(csvfilename, encoding='utf-8'):
     """
     Reads a csv file and returns a list of lists
     containing rows in the csv file and its entries.
     """
-    with open(csvfilename) as csvfile:
+    with open(csvfilename, encoding='utf-8') as csvfile:
         rows = [row for row in csv.reader(csvfile)]
     return rows[1:]
+
 
 
 def lookup(cs):
@@ -52,7 +53,7 @@ def news_api(ne):
     return df2
 
 
-NASQ = read_csv(r"app/static/All.csv")
+NASQ = read_csv(r"app/static/AAll.csv")
 opt = lookup(NASQ)
 TODAY = date.date.today()
 today = TODAY.strftime('%Y-%m-%d')
