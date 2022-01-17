@@ -2,6 +2,7 @@ import dash
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import csv
+import json
 from yahoo_fin import stock_info
 import time
 import yfinance as yf
