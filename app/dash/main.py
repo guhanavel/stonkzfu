@@ -1,4 +1,6 @@
 import dash
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 import csv
 from yahoo_fin import stock_info
 import time
@@ -23,7 +25,7 @@ def read_csv(csvfilename):
     Reads a csv file and returns a list of lists
     containing rows in the csv file and its entries.
     """
-    with open(csvfilename, encoding='utf-8') as csvfile:
+    with open(csvfilename) as csvfile:
         rows = [row for row in csv.reader(csvfile)]
     return rows[1:]
 
@@ -33,6 +35,10 @@ def lookup(cs):
     for c in cs:
         ls.append({'label': c[1] + " : " + c[0], 'value': c[0]})
     return ls
+
+
+def earnings(Ticker, types):
+    return stock_info.get_earnings(Ticker)[types]
 
 
 def news_api(ne):
@@ -45,13 +51,6 @@ def news_api(ne):
     return df2
 
 
-def load_data(Ticker):
-    coy = yf.Ticker(Ticker)
-    data = coy.history(period="2y")
-    data.reset_index()
-    return data
-
-
 NASQ = read_csv(r"app/static/All.csv")
 opt = lookup(NASQ)
 TODAY = date.date.today()
@@ -60,7 +59,43 @@ day = timedelta.Timedelta(days=10)
 nyse = mcal.get_calendar('NYSE')
 early = nyse.schedule(start_date=TODAY, end_date=TODAY + day)[:3]
 early = [e.strftime('%Y-%m-%d') for e in early.index.tolist()]
-predictions = {}
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+
+# add credentials to the account
+creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\Users\Asus\OneDrive\Desktop\credentials.json.json", scope)
+
+# authorize the clientsheet 
+client = gspread.authorize(creds)
+
+def load_data(Ticker):
+    coy = yf.Ticker(Ticker)
+    data = coy.history(period="2y")
+    data.reset_index()
+    return data
+
+def graph(Ticker):
+    sheet = client.open(Ticker).get_worksheet(0)
+    datas = sheet.get_all_records()
+    return pd.DataFrame.from_dict(datas)
+
+
+def predict(tick):
+    sheet = client.open(tick).get_worksheet(2)
+    datas = sheet.get_all_records()
+    return pd.DataFrame.from_dict(datas)
+
+
+def info(tick):
+    sheet = client.open(tick).get_worksheet(1)
+    datas = sheet.get_all_records()[:-1]
+    a = datas[3]['Info']
+    datas[3]['Info'] = html.A(html.P(a), href=a)
+    return datas
+
+
+def summary(tick):
+    sheet = client.open(tick).get_worksheet(1)
+    return sheet.get_all_records()[-1]['Info']
 
 
 def dash_app(server):
@@ -224,14 +259,13 @@ def dash_app(server):
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
-                                     mode='lines+markers',
-                                     showlegend=True),secondary_y=False)
+                                     showlegend=True), secondary_y=False)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_200.Close),
                                      visible=True,
                                      name="MA_200",
-                                     showlegend=True),secondary_y=False)
+                                     showlegend=True), secondary_y=False)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_50.Close),
@@ -281,7 +315,8 @@ def dash_app(server):
                     traceorder="normal",
                 )
             ),
-            fig.update_yaxes(range=[0,max(list(dat.Volume))+0.25*max(list(dat.Volume))],secondary_y=True,visible=False)
+            fig.update_yaxes(range=[0, max(list(dat.Volume)) + 0.25 * max(list(dat.Volume))], secondary_y=True,
+                             visible=False)
 
             return fig
 
@@ -294,54 +329,11 @@ def dash_app(server):
         if value is None:
             raise dash.exceptions.PreventUpdate
         else:
-            def predict(Ticker):
-                df = load_data(Ticker)
-                df_close = df['Close']
-                model = auto_arima(df_close, trace=True, error_action='ignore', suppress_warnings=True)
-                print(model.get_params())
-                model.fit(df_close)
-                forecast = model.predict(n_periods=3)
-                trend = []
-                for f in range(len(forecast.tolist())):
-                    if f == 0:
-                        if forecast.tolist()[0] >= load_data(Ticker)[-1:].Close.to_list()[0]:
-                            trend.append("Bull/Up")
-                        else:
-                            trend.append("Bear/Down")
-                    else:
-                        if forecast.tolist()[f] >= forecast.tolist()[f - 1]:
-                            trend.append("Bull/Up")
-                        else:
-                            trend.append("Bear/Down")
-                data = {'Date': early, 'Prediction': [round(f, 2) for f in forecast.tolist()], 'Trend': trend}
-                forecast = pd.DataFrame(data=data)
-                return forecast
-
-            if today not in predictions:
-                predictions[today] = {}
-                if value not in predictions[today]:
-                    predictions[today][value] = predict(value)
-                    columns = [{"name": i, "id": i} for i in predictions[today][value].columns]
-                    print(columns)
-                    t_data = predictions[today][value].to_dict("records")
-                    return columns, t_data
-                else:
-                    columns = [{"name": i, "id": i} for i in predictions[today][value].columns]
-                    print(columns)
-                    t_data = predictions[today][value].to_dict("records")
-                    return columns, t_data
-            else:
-                if value not in predictions[today]:
-                    predictions[today][value] = predict(value)
-                    columns = [{"name": i, "id": i} for i in predictions[today][value].columns]
-                    print(columns)
-                    t_data = predictions[today][value].to_dict("records")
-                    return columns, t_data
-                else:
-                    columns = [{"name": i, "id": i} for i in predictions[today][value].columns]
-                    print(columns)
-                    t_data = predictions[today][value].to_dict("records")
-                    return columns, t_data
+            data = predict(value)
+            columns = [{"name": i, "id": i} for i in data.columns]
+            print(columns)
+            t_data = data.to_dict("records")
+            return columns, t_data
 
     @app.callback(
         Output("gen", "children"),
@@ -352,8 +344,7 @@ def dash_app(server):
         if value is None:
             raise dash.exceptions.PreventUpdate
         else:
-            ans = gen(value)
-            ans["Info"].insert(0, value)
+            ans = info(value)
             fin = pd.DataFrame(data=ans)
             return dbc.Table.from_dataframe(fin, striped=True, bordered=True, hover=True, loading_state=True)
 
@@ -379,7 +370,7 @@ def dash_app(server):
         if value is None:
             raise dash.exceptions.PreventUpdate
         else:
-            return su(value)
+            return summary(value)
 
     @app.callback(
         [Output("earn", "columns"), Output("earn", "data")],
