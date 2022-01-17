@@ -35,27 +35,6 @@ def lookup(cs):
     return ls
 
 
-def gen(Ticker):
-    dic = {'Type': ['Symbol', 'Sector', 'Industry', 'Website', 'Risk', "Next Earning Date"], "Info": []}
-    info = stock_info.get_company_info(Ticker).transpose()
-    infoo = info.to_dict("records")[0]
-    dic["Info"].append(infoo['sector'])
-    dic["Info"].append(infoo['industry'])
-    dic["Info"].append(html.A(html.P(infoo['website']), href=infoo['website']))
-    dic["Info"].append(infoo['overallRisk'])
-    dic["Info"].append(stock_info.get_next_earnings_date(Ticker).strftime("%Y-%m-%d %H:%M:%S"))
-    return dic
-
-
-def su(Ticker):
-    info = list(stock_info.get_company_info(Ticker).iloc[[5]]["Value"])
-    return info[0]
-
-
-def earnings(Ticker, types):
-    return stock_info.get_earnings(Ticker)[types]
-
-
 def news_api(ne):
     news = yf.Ticker(ne).news
     fin = {'Date': [], "News": []}
@@ -73,7 +52,7 @@ def load_data(Ticker):
     return data
 
 
-NASQ = read_csv(r"app/static/constituents_csv.csv")
+NASQ = read_csv(r"app/static/All.csv")
 opt = lookup(NASQ)
 TODAY = date.date.today()
 today = TODAY.strftime('%Y-%m-%d')
