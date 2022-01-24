@@ -1,107 +1,15 @@
-import dash
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import csv
-import json
-from yahoo_fin import stock_info
-import time
-import yfinance as yf
-from dash import dcc, html
-import dash_bootstrap_components as dbc
-from dash import dash_table
-from dash.dependencies import Input, Output, State
-import datetime as date, timedelta
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import pandas_market_calendars as mcal
-import pandas as pd
-from pmdarima.arima import auto_arima
+from app.dash.function import *
 import warnings
 
 warnings.filterwarnings('ignore')
 
-
-def read_csv(csvfilename, encoding='utf-8'):
-    """
-    Reads a csv file and returns a list of lists
-    containing rows in the csv file and its entries.
-    """
-    with open(csvfilename, encoding='utf-8') as csvfile:
-        rows = [row for row in csv.reader(csvfile)]
-    return rows[1:]
-
-
-
-def lookup(cs):
-    ls = []
-    for c in cs:
-        ls.append({'label': c[1] + " : " + c[0], 'value': c[0]})
-    return ls
-
-
-def earnings(Ticker, types):
-    return stock_info.get_earnings(Ticker)[types]
-
-
-def news_api(ne):
-    news = yf.Ticker(ne).news
-    fin = {'Date': [], "News": []}
-    for n in range(len(news)):
-        fin["Date"].append(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(news[n]["providerPublishTime"])))
-        fin["News"].append(html.A(html.P(news[n]['title']), href=news[n]['link']))
-    df2 = pd.DataFrame(data=fin)
-    return df2
-
-
 NASQ = read_csv(r"app/static/AAll.csv")
 opt = lookup(NASQ)
-TODAY = date.date.today()
-today = TODAY.strftime('%Y-%m-%d')
-day = timedelta.Timedelta(days=10)
-nyse = mcal.get_calendar('NYSE')
-early = nyse.schedule(start_date=TODAY, end_date=TODAY + day)[:3]
-early = [e.strftime('%Y-%m-%d') for e in early.index.tolist()]
-scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-
-# add credentials to the account
-creds = ServiceAccountCredentials.from_json_keyfile_name(r"app/static/credentials.json.json", scope)
-
-# authorize the clientsheet 
-client = gspread.authorize(creds)
-
-def load_data(Ticker):
-    coy = yf.Ticker(Ticker)
-    data = coy.history(period="2y")
-    data.reset_index()
-    return data
-
-def graph(Ticker):
-    sheet = client.open(Ticker).get_worksheet(0)
-    datas = sheet.get_all_records()
-    return pd.DataFrame.from_dict(datas)
-
-
-def predict(tick):
-    sheet = client.open(tick).get_worksheet(2)
-    datas = sheet.get_all_records()
-    return pd.DataFrame.from_dict(datas)
-
-
-def info(tick):
-    sheet = client.open(tick).get_worksheet(1)
-    datas = sheet.get_all_records()[:-1]
-    a = datas[3]['Info']
-    datas[3]['Info'] = html.A(html.P(a), href=a)
-    return datas
-
-
-def summary(tick):
-    sheet = client.open(tick).get_worksheet(1)
-    return sheet.get_all_records()[-1]['Info']
 
 
 def dash_app(server):
-    app = dash.Dash(server=server, routes_pathname_prefix="/", external_stylesheets=[dbc.themes.BOOTSTRAP],
+    app = dash.Dash(server=server, url_base_pathname='/', external_stylesheets=[dbc.themes.BOOTSTRAP],
+                    title="Stonkzfu",
                     meta_tags=[{'name': 'viewport',
                                 'content': 'width=device-width, initial-scale=1, maximum-scale=1.2, minimum-scale=0.5'}])
 
@@ -110,10 +18,62 @@ def dash_app(server):
         "padding-right": "10px",
         "padding-left": "20px"
     }
+    SIDEBAR_STYLE = {
+        "position": "fixed",
+        "top": 62.5,
+        "left": 0,
+        "bottom": 0,
+        "height": "100%",
+        "z-index": 1,
+        "overflow-x": "hidden",
+        "transition": "all 0.5s",
+        "background-color": "#f8f9fa",
+    }
 
+    SIDEBAR_HIDEN = {
+        "position": "fixed",
+        "top": 62.5,
+        "left": "-16rem",
+        "bottom": 0,
+        "width": "16rem",
+        "height": "100%",
+        "z-index": 1,
+        "overflow-x": "hidden",
+        "transition": "all 0.5s",
+        "padding": "0rem 0rem",
+        "background-color": "#f8f9fa",
+    }
+
+    # the styles for the main content position it to the right of the sidebar and
+    # add some padding.
+    CONTENT_STYLE = {
+        "transition": "margin-left .5s",
+        "margin-left": "13rem",
+        "background-color": "#f8f9fa",
+    }
+
+    CONTENT_STYLE1 = {
+        "transition": "margin-left .5s",
+        "background-color": "#f8f9fa",
+    }
+
+    sidebar = html.Div(
+        [
+            html.H2("Options", className="display-4"),
+            dbc.Nav(
+                [
+                    html.A(html.P("Calendar"), href="/cal"),
+                ],
+                vertical=True,
+                pills=True,
+            ),
+        ],
+        id="sidebar",
+        style=SIDEBAR_STYLE,
+    )
     search_bar = dbc.Row(
         [
-            dbc.Col(dcc.Dropdown(id='Stock', options=opt, value="TSLA")),
+            dbc.Col(dcc.Dropdown(id='Stock', options=opt)),
             dbc.Col(
                 dbc.Button(
                     "Search", id="Search", color="primary", className="ms-2", n_clicks=0
@@ -132,6 +92,8 @@ def dash_app(server):
                     # Use row and col to control vertical alignment of logo / brand
                     dbc.Row(
                         [
+                            dbc.Col(
+                                dbc.Button("=", outline=True, color="secondary", className="mr-1", id="btn_sidebar")),
                             dbc.Col(html.Img(src="../static/stonkzfublack.png", height="28px")),
                             dbc.Col(dbc.NavbarBrand("STOCK ANLAYSER", className="ms-2")),
                         ],
@@ -236,24 +198,32 @@ def dash_app(server):
                  ]),
              ]
 
-    content = html.Div(cdivs, style=CONTENT_STYLE)
+    content = html.Div(cdivs, id="page-content",style=CONTENT_STYLE)
 
-    app.layout = html.Div([dcc.Location(id="url"), navbar,
+    app.layout = html.Div([dcc.Location(id="url", refresh=False), dcc.Store(id='side_click'), navbar, sidebar,
                            content], )
 
     # this callback uses the current pathname to set the active state of the
     # corresponding nav link to true, allowing users to tell see page they are on
+    @app.callback(Output('url', 'search'), Input("Search", "n_clicks"),
+                  State("Stock", "value"))
+    def out(n_clicks, value):
+        if isinstance(value,str):
+            return '?val=' +value
+
+    @app.callback(Output("Stock", "value"), Input('url', 'search'))
+    def input(search):
+        return search[5:]
 
     @app.callback(
         Output('graph_close', 'figure'),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
-    )
-    def lota(n_clicks, value):
-        if value is None:
+        Input('url', 'search'))
+
+    def lota(search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            dat = load_data(value)
+            dat = load_data(search[5:])
             MA_200 = dat.rolling(window=200).mean()
             MA_50 = dat.rolling(window=50).mean()
             fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -324,14 +294,13 @@ def dash_app(server):
 
     @app.callback(
         [Output("table", "columns"), Output("table", "data")],
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
+        Input('url', 'search')
     )
-    def day(n_clicks, value):
-        if value is None:
+    def day(search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            data = predict(value)
+            data = predict(search[5:])
             columns = [{"name": i, "id": i} for i in data.columns]
             print(columns)
             t_data = data.to_dict("records")
@@ -339,55 +308,83 @@ def dash_app(server):
 
     @app.callback(
         Output("gen", "children"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
+        Input('url', 'search')
     )
-    def date(n_clicks, value):
-        if value is None:
+    def date(search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            ans = info(value)
+            ans = info(search[5:])
             fin = pd.DataFrame(data=ans)
             return dbc.Table.from_dataframe(fin, striped=True, bordered=True, hover=True, loading_state=True)
 
     @app.callback(
         Output("news", "children"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
+        Input('url', 'search')
     )
-    def date(n_clicks, value):
-        if value is None:
+    def date(search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            ans = news_api(value)
+            ans = news_api(search[5:])
             fin = pd.DataFrame(data=ans)
             return dbc.Table.from_dataframe(fin, striped=True, bordered=True, hover=True, loading_state=True)
 
     @app.callback(
         Output("infom", "children"),
-        Input("Search", "n_clicks"),
-        State("Stock", "value")
+        Input('url', 'search')
     )
-    def get(n_clicks, value):
-        if value is None:
+    def get(search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            return summary(value)
+            return summary(search[5:])
 
     @app.callback(
         [Output("earn", "columns"), Output("earn", "data")],
         Input("mode", "value"),
-        State("Stock", "value")
+        Input('url', 'search')
     )
-    def ear(value, values):
-        if values is None:
+    def ear(value, search):
+        if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            fin = earnings(values, value)
+            fin = earnings(search[5:], value)
             fin.rename(columns={'date': 'Date', 'actual': 'Actual', 'estimate': 'Estimate', 'revenue': 'Revenue',
                                 'earnings': 'Earnings'}, inplace=True)
             columns = [{"name": i, "id": i} for i in fin.columns]
             t_data = fin.to_dict("records")
             return columns, t_data
+
+    @app.callback(
+        [
+            Output("sidebar", "style"),
+            Output("page-content", "style"),
+            Output("side_click", "data"),
+        ],
+
+        [Input("btn_sidebar", "n_clicks")],
+        [
+            State("side_click", "data"),
+        ]
+    )
+    def toggle_sidebar(n, nclick):
+        if n:
+            if nclick == "SHOW":
+                sidebar_style = SIDEBAR_HIDEN
+                content_style = CONTENT_STYLE1
+                cur_nclick = "HIDDEN"
+            else:
+                sidebar_style = SIDEBAR_STYLE
+                content_style = CONTENT_STYLE
+                cur_nclick = "SHOW"
+        else:
+            sidebar_style = SIDEBAR_HIDEN
+            content_style = CONTENT_STYLE1
+            cur_nclick = 'SHOW'
+
+        return sidebar_style, content_style, cur_nclick
+
+
 
     return app.server

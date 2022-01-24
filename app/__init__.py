@@ -19,9 +19,9 @@ def init_app():
 
     with app.app_context():
         # Import parts of our core Flask app
-
+        from . import routes
         # Import Dash application
-        from app.dash.main import dash_app
+        from app.dash.baa import dash_app
         app = dash_app(app)
 
         return app
