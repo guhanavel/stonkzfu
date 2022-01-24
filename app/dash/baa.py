@@ -63,6 +63,7 @@ def dash_app(server):
             dbc.Nav(
                 [
                     html.A(html.P("Calendar"), href="/cal"),
+                    html.A(html.P("Main Page"), href="/"),
                 ],
                 vertical=True,
                 pills=True,

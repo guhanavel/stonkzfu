@@ -4,8 +4,14 @@ from .dash.function import get_events
 
 events = get_events()
 
+
 @app.route('/')
 def home():
+    return render_template("home.html")
+
+
+@app.route('/')
+def dash():
     """Landing page."""
     return render_template()
 
