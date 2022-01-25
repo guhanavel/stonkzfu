@@ -94,9 +94,10 @@ def dash_app(server):
                     dbc.Row(
                         [
                             dbc.Col(
-                                dbc.Button("=", outline=True, color="secondary", className="mr-1", id="btn_sidebar")),
-                            dbc.Col(html.Img(src="../static/stonkzfublack.png", height="28px")),
-                            dbc.Col(dbc.NavbarBrand("STOCK ANLAYSER", className="ms-2")),
+                                dbc.Button("=", outline=True, color="secondary", className="mr-1", id="btn_sidebar",
+                                           style={"float": "left"}),style={"padding-right":"2px"}),
+                            dbc.Col(html.Img(src="../static/logo.png", height="28px")),
+                            dbc.Col(dbc.NavbarBrand("stonkzfu", className="ms-2")),
                         ],
                         align="center",
                         className="g-0",
