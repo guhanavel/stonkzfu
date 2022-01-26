@@ -8,6 +8,64 @@
   rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
   crossorigin="anonymous">
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #5b5b5b;
+    }
+
+    li {
+      float: left;
+    }
+
+    li a:hover {
+      background-color: #5b5b5b;
+    }
+    .dropbtn {
+      background-color: #5b5b5b;
+      color: black;
+      padding: 16px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .dropdown {
+      position: relative;
+      display: block;
+
+    }
+
+    .dropdown-content {
+      display: none;
+      position: relative;
+      background-color: #5b5b5b;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+
+    .dropdown-content a:hover {background-color: #ffffff}
+
+    .dropdown:hover .dropdown-content {
+      display: inline;
+    }
+
+    .dropdown:hover .dropbtn {
+      background-color: #ffffff;
+    }
+
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
   <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -44,10 +102,21 @@
   <title>IPO & Earnings Calendar</title>
 </head>
 <body>
-    <div class="container", >
+    <div>
+        <ul>
+          <li><div class="dropdown">
+              <button class="dropbtn"><img src="../static/options.png" height="30vh"></img></button>
+              <div class="dropdown-content">
+                  <a href='/'>Home</a>
+                  <a href='/das?val=AAPL'>Dashboard</a>
+              </div>
+            </div></li>
+          <li><a href="/"><img src="../static/logo.png" height="50vh", width="200vh", position="center"></img></a></li>
+        </ul>
+    </div>
+
+    <div class="container" >
         <div id="calendar"></div>
     </div>
-    <a href='/das?val=AAPL'>Dashboard</a>
-    <a href='/'>Main Page</a>
 </body>
 </html>

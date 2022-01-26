@@ -1,3 +1,8 @@
+from datetime import datetime
+
+import dash_bootstrap_components
+import google.protobuf.internal.wire_format
+
 from app.dash.function import *
 import warnings
 
@@ -13,107 +18,51 @@ def dash_app(server):
                     meta_tags=[{'name': 'viewport',
                                 'content': 'width=device-width, initial-scale=1, maximum-scale=1.2, minimum-scale=0.5'}])
 
-    CONTENT_STYLE = {
-        "padding-top": "5px",
-        "padding-right": "10px",
-        "padding-left": "20px"
-    }
-    SIDEBAR_STYLE = {
-        "position": "fixed",
-        "top": 62.5,
-        "left": 0,
-        "bottom": 0,
-        "height": "100%",
-        "z-index": 1,
-        "overflow-x": "hidden",
-        "transition": "all 0.5s",
-        "background-color": "#f8f9fa",
-    }
-
-    SIDEBAR_HIDEN = {
-        "position": "fixed",
-        "top": 62.5,
-        "left": "-16rem",
-        "bottom": 0,
-        "width": "16rem",
-        "height": "100%",
-        "z-index": 1,
-        "overflow-x": "hidden",
-        "transition": "all 0.5s",
-        "padding": "0rem 0rem",
-        "background-color": "#f8f9fa",
-    }
-
     # the styles for the main content position it to the right of the sidebar and
     # add some padding.
+
     CONTENT_STYLE = {
         "transition": "margin-left .5s",
-        "margin-left": "13rem",
         "background-color": "#f8f9fa",
     }
 
-    CONTENT_STYLE1 = {
-        "transition": "margin-left .5s",
-        "background-color": "#f8f9fa",
-    }
-
-    sidebar = html.Div(
-        [
-            html.H2("Options", className="display-4"),
-            dbc.Nav(
-                [
-                    html.A(html.P("Calendar"), href="/cal"),
-                    html.A(html.P("Main Page"), href="/"),
-                ],
-                vertical=True,
-                pills=True,
-            ),
-        ],
-        id="sidebar",
-        style=SIDEBAR_STYLE,
-    )
     search_bar = dbc.Row(
         [
-            dbc.Col(dcc.Dropdown(id='Stock', options=opt)),
+            dbc.Col(dcc.Dropdown(id='Stock', options=opt),
+                    style={'height': '30px', 'width': '100px', "padding-left": "10px"}),
             dbc.Col(
                 dbc.Button(
-                    "Search", id="Search", color="primary", className="ms-2", n_clicks=0
+                    html.Img(src="../static/search.png", height="20vh"), id="Search", n_clicks=0, color="light",
                 ),
                 width="auto",
+                style={"padding": "0%"}
             ),
         ],
         className="g-0 ms-auto flex-nowrap mt-3 mt-md-0",
         align="center",
     )
 
-    navbar = dbc.Navbar(
-        dbc.Container(
-            [
-                html.A(
-                    # Use row and col to control vertical alignment of logo / brand
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.Button("=", outline=True, color="secondary", className="mr-1", id="btn_sidebar",
-                                           style={"float": "left"}),style={"padding-right":"2px"}),
-                            dbc.Col(html.Img(src="../static/logo.png", height="28px")),
-                            dbc.Col(dbc.NavbarBrand("stonkzfu", className="ms-2")),
-                        ],
-                        align="center",
-                        className="g-0",
-                    ),
-                    style={"textDecoration": "none"},
-                ),
-            ]
-        ),
-        color="dark",
-        dark=True,
-    )
-
     cdivs = [html.Div(id="test"),
-             dbc.Row(
-                 dbc.Col(search_bar, align="left"),
+             dcc.Interval(
+                 id='interval-component',
+                 interval=1 * 10000,  # in milliseconds
+                 n_intervals=0
              ),
+             dcc.Interval(
+                 id='inter',
+                 interval=1 * 500,  # in milliseconds
+                 n_intervals=0
+             ),
+             html.Div(html.Ul(children=[html.Li(html.Div(className="dropdown", children=[
+                 html.Button(className="dropbtn", children=[
+                     html.Img(src="../static/options.png", height="30vh")
+                 ]),
+                 html.Div(className="dropdown-content", children=[
+                     html.A("Home", href='/'), html.A("Calendar", href='/cal')
+                 ])
+             ])), html.Li(html.A(html.Img(src="../static/logo.png", height="50vh"), href="/"))])),
+             dbc.Row(search_bar),
+             dbc.Row(html.Div(id="Test")),
              dbc.Row(
                  dbc.Col(html.Div([
                      html.H4("Stock Performance:"),
@@ -200,9 +149,9 @@ def dash_app(server):
                  ]),
              ]
 
-    content = html.Div(cdivs, id="page-content",style=CONTENT_STYLE)
+    content = html.Div(cdivs, id="page-content", style=CONTENT_STYLE)
 
-    app.layout = html.Div([dcc.Location(id="url", refresh=False), dcc.Store(id='side_click'), navbar, sidebar,
+    app.layout = html.Div([dcc.Location(id="url", refresh=False),
                            content], )
 
     # this callback uses the current pathname to set the active state of the
@@ -210,8 +159,8 @@ def dash_app(server):
     @app.callback(Output('url', 'search'), Input("Search", "n_clicks"),
                   State("Stock", "value"))
     def out(n_clicks, value):
-        if isinstance(value,str):
-            return '?val=' +value
+        if isinstance(value, str):
+            return '?val=' + value
 
     @app.callback(Output("Stock", "value"), Input('url', 'search'))
     def input(search):
@@ -219,38 +168,66 @@ def dash_app(server):
 
     @app.callback(
         Output('graph_close', 'figure'),
-        Input('url', 'search'))
-
-    def lota(search):
+        Input('url', 'search'), Input('interval-component', 'n_intervals'))
+    def lota(search, n):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
             dat = load_data(search[5:])
             MA_200 = dat.rolling(window=200).mean()
             MA_50 = dat.rolling(window=50).mean()
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig = make_subplots(rows=4, cols=2, specs=[[{"type": "indicator", "rowspan": 1, "colspan":1},{"type": "indicator", "rowspan": 1, "colspan":1}],
+                                                       [{"type": "scatter", "rowspan": 2, "colspan":2},None],
+                                                       [None,None],
+                                                       [{"type": "bar", "rowspan": 1,"colspan":2},None]])
+            fig.add_trace(
+                go.Indicator(
+                    mode="number+delta",
+                    value=live_prices(search[5:])[1],
+                    number={'valueformat': 'f', 'suffix':"USD","font":{"size":20}},
+                    title={"text":"Status:"+str(live_prices(search[5:])[0]), "font":{"size":30},"align":"left"},
+                    delta={'reference': live_prices(search[5:])[2], 'relative': True, 'position': "bottom"},
+                    align="left",
+
+                ),
+                row=1, col=1
+            ),
+            fig.add_trace(
+                go.Indicator(
+                    mode="number+delta",
+                    value=live_prices(search[5:])[-1],
+                    number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20}},
+                    title={"text": str(live_prices(search[5:])[0]) + ":", "font": {"size": 30}, "align": "left"},
+                    delta={'reference': live_prices(search[5:])[-2], 'relative': True, 'position': "bottom"},
+                    align="left",
+                    visible=False if live_prices(search[5:])[0] == "Open" else True,
+                    uid="pos"
+
+                ),
+                row=1, col=2
+            )
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
-                                     showlegend=True), secondary_y=False)
+                                     showlegend=True), row=2, col=1)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_200.Close),
                                      visible=True,
                                      name="MA_200",
-                                     showlegend=True), secondary_y=False)
+                                     showlegend=True), row=2, col=1)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(MA_50.Close),
                                      visible=True,
                                      name="MA_50",
                                      showlegend=True,
-                                     ), secondary_y=False)
+                                     ), row=2, col=1)
             fig.add_trace(go.Bar(x=list(dat.index),
                                  y=list(dat.Volume),
                                  name="Volume", ),
-                          secondary_y=True)
+                          row=4, col=1)
 
             fig.update_layout(
                 autosize=False,
@@ -289,8 +266,6 @@ def dash_app(server):
                     traceorder="normal",
                 )
             ),
-            fig.update_yaxes(range=[0, max(list(dat.Volume)) + 0.25 * max(list(dat.Volume))], secondary_y=True,
-                             visible=False)
 
             return fig
 
@@ -358,35 +333,10 @@ def dash_app(server):
             t_data = fin.to_dict("records")
             return columns, t_data
 
-    @app.callback(
-        [
-            Output("sidebar", "style"),
-            Output("page-content", "style"),
-            Output("side_click", "data"),
-        ],
-
-        [Input("btn_sidebar", "n_clicks")],
-        [
-            State("side_click", "data"),
-        ]
-    )
-    def toggle_sidebar(n, nclick):
-        if n:
-            if nclick == "SHOW":
-                sidebar_style = SIDEBAR_HIDEN
-                content_style = CONTENT_STYLE1
-                cur_nclick = "HIDDEN"
-            else:
-                sidebar_style = SIDEBAR_STYLE
-                content_style = CONTENT_STYLE
-                cur_nclick = "SHOW"
-        else:
-            sidebar_style = SIDEBAR_HIDEN
-            content_style = CONTENT_STYLE1
-            cur_nclick = 'SHOW'
-
         return sidebar_style, content_style, cur_nclick
 
-
-
+    @app.callback(Output('test', 'children'),
+                  Input('inter', 'n_intervals'))
+    def inter(n):
+        return serve_layout()
     return app.server

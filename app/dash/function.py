@@ -1,5 +1,6 @@
 import dash
 import gspread
+import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 import csv
 from yahoo_fin import stock_info
@@ -16,6 +17,7 @@ import pandas_market_calendars as mcal
 import pandas as pd
 import warnings
 import finnhub
+from pytz import timezone
 
 warnings.filterwarnings('ignore')
 
@@ -35,6 +37,8 @@ day = timedelta.Timedelta(days=10)
 nyse = mcal.get_calendar('NYSE')
 early = nyse.schedule(start_date=TODAY, end_date=TODAY + day)[:3]
 early = [e.strftime('%Y-%m-%d') for e in early.index.tolist()]
+d = timedelta.Timedelta(days=2)
+e = timedelta.Timedelta(days=1)
 
 finnhub_client = finnhub.Client(api_key="c7l6tpqad3i9ji44hd40")
 
@@ -123,3 +127,30 @@ def get_events():
     data = sheet.get_all_records()
     data += even()
     return data
+
+
+def live_prices(tick):
+    data = stock_info.get_data(tick, start_date=TODAY - d, end_date=TODAY-e)[-2:]["adjclose"][-1]
+    status = stock_info.get_market_status()
+    if status == "OPEN" or "REGULAR":
+        live = stock_info.get_live_price(tick)
+        diff = live - data
+        return ["Open", round(live, 5), data]
+    elif status == "CLOSED":
+        return ["Close", round(data, 5), round(data, 2)]
+    elif status == "PRE":
+        pre = stock_info.get_premarket_price(tick)
+        diff = pre - data
+        return ["Pre-Market", round(data, 5), round(data, 5), pre]
+    elif status == "POST":
+        pre = stock_info.get_postmarket_price(tick)
+        diff = pre - data
+        return ["Post-Market", round(data, 5), round(data, 5), pre]
+    else:
+        return [status, round(data, 5), round(data, 2)]
+
+
+def serve_layout():
+    eastern = timezone('US/Eastern')
+    utc_time = date.datetime.now()
+    return date.datetime.now(eastern).strftime('%Y-%m-%d %H:%M:%S')
