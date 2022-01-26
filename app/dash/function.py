@@ -153,4 +153,4 @@ def live_prices(tick):
 def serve_layout():
     eastern = timezone('US/Eastern')
     utc_time = date.datetime.now()
-    return date.datetime.now(eastern).strftime('%Y-%m-%d %H:%M:%S')
+    return "US TIME:" + date.datetime.now(eastern).strftime('%Y-%m-%d %H:%M:%S')
