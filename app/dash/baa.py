@@ -65,7 +65,6 @@ def dash_app(server):
              dbc.Row(html.Div(id="Test")),
              dbc.Row(
                  dbc.Col(html.Div([
-                     html.H4("Stock Performance:"),
                      dcc.Graph(
 
                          id="graph_close",
