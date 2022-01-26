@@ -65,6 +65,7 @@ def dash_app(server):
              dbc.Row(html.Div(id="Test")),
              dbc.Row(
                  dbc.Col(html.Div([
+                     html.H4("Charts:"),
                      dcc.Graph(
 
                          id="graph_close",
