@@ -63,6 +63,7 @@ def dash_app(server):
              ])), html.Li(html.A(html.Img(src="../static/logo.png", height="50vh"), href="/"))])),
              dbc.Row(search_bar),
              dbc.Row(html.Div(id="Test")),
+             dbc.Row(html.Div(id="st")),
              dbc.Row(
                  dbc.Col(html.Div([
                      html.H4("Charts:"),
@@ -198,10 +199,9 @@ def dash_app(server):
                     value=live_prices(search[5:])[-1],
                     number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20}},
                     title={"text": str(live_prices(search[5:])[0]) + ":", "font": {"size": 30}, "align": "left"},
-                    delta={'reference': live_prices(search[5:])[-2], 'relative': True, 'position': "bottom"},
+                    delta={'reference': live_prices(search[5:])[1], 'relative': True, 'position': "bottom"},
                     align="left",
-                    visible=False if live_prices(search[5:])[0] == "Open" else True,
-                    uid="pos"
+                    visible=True if live_prices(search[5:])[0] != "Open" else False,
 
                 ),
                 row=1, col=2
@@ -335,8 +335,8 @@ def dash_app(server):
 
         return sidebar_style, content_style, cur_nclick
 
-    @app.callback(Output('test', 'children'),
+    @app.callback([Output('Test', 'children'),Output('st', 'children')],
                   Input('inter', 'n_intervals'))
     def inter(n):
-        return serve_layout()
+        return serve_layout(), lay()
     return app.server

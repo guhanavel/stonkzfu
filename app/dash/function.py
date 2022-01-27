@@ -130,22 +130,28 @@ def get_events():
 
 
 def live_prices(tick):
-    data = stock_info.get_data(tick, start_date=TODAY - d, end_date=TODAY-e)[-2:]["adjclose"][-1]
+    dan = stock_info.get_data(tick, start_date=TODAY - d, end_date=TODAY).reset_index()
+    if TODAY.strftime('%H:%M') > "21:00":
+        data = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
+        data2 = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
+    else:
+        data = float(dan.loc[dan["index"] == (TODAY-d).strftime('%Y-%m-%d')]["adjclose"])
+        data2 = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
     status = stock_info.get_market_status()
-    if status == "OPEN" or "REGULAR":
+    if status == "OPEN":
         live = stock_info.get_live_price(tick)
-        diff = live - data
         return ["Open", round(live, 5), data]
     elif status == "CLOSED":
-        return ["Close", round(data, 5), round(data, 2)]
+        return ["Close", round(data2, 5), round(data, 5)]
     elif status == "PRE":
         pre = stock_info.get_premarket_price(tick)
-        diff = pre - data
-        return ["Pre-Market", round(data, 5), round(data, 5), pre]
-    elif status == "POST":
+        return ["Pre-Market", round(data2, 5), round(data, 5), pre]
+    elif status == "POSTPOST":
         pre = stock_info.get_postmarket_price(tick)
-        diff = pre - data
-        return ["Post-Market", round(data, 5), round(data, 5), pre]
+        return ["Post-Market", round(data2, 5), round(data, 5), pre]
+    if status == "REGULAR":
+        live = stock_info.get_live_price(tick)
+        return ["Open", round(live, 5), data]
     else:
         return [status, round(data, 5), round(data, 2)]
 
@@ -154,3 +160,6 @@ def serve_layout():
     eastern = timezone('US/Eastern')
     utc_time = date.datetime.now()
     return "US TIME:" + date.datetime.now(eastern).strftime('%Y-%m-%d %H:%M:%S')
+
+def lay():
+    return "Your Location Time:" + date.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
