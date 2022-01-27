@@ -63,7 +63,6 @@ def dash_app(server):
              ])), html.Li(html.A(html.Img(src="../static/logo.png", height="50vh"), href="/"))])),
              dbc.Row(search_bar),
              dbc.Row(html.Div(id="Test")),
-             dbc.Row(html.Div(id="st")),
              dbc.Row(
                  dbc.Col(html.Div([
                      html.H4("Charts:"),
@@ -335,8 +334,8 @@ def dash_app(server):
 
         return sidebar_style, content_style, cur_nclick
 
-    @app.callback([Output('Test', 'children'),Output('st', 'children')],
+    @app.callback(Output('Test', 'children'),
                   Input('inter', 'n_intervals'))
     def inter(n):
-        return serve_layout(), lay()
+        return serve_layout()
     return app.server
