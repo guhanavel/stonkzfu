@@ -39,6 +39,7 @@ early = nyse.schedule(start_date=TODAY, end_date=TODAY + day)[:3]
 early = [e.strftime('%Y-%m-%d') for e in early.index.tolist()]
 d = timedelta.Timedelta(days=2)
 e = timedelta.Timedelta(days=1)
+hour = timedelta.Timedelta(hours=7)
 
 finnhub_client = finnhub.Client(api_key="c7l6tpqad3i9ji44hd40")
 
@@ -74,9 +75,8 @@ def news_api(ne):
     return df2
 
 
-def load_data(Ticker):
-    coy = yf.Ticker(Ticker)
-    data = coy.history(period="2y")
+def load_data(Ticker,tim,inter,pre):
+    data = yf.download(Ticker,period=tim,interval=inter,auto_adjust=True,prepost=pre)
     data.reset_index()
     return data
 
@@ -140,20 +140,20 @@ def live_prices(tick):
     status = stock_info.get_market_status()
     if status == "OPEN":
         live = stock_info.get_live_price(tick)
-        return ["Open", round(live, 5), data]
+        return ["Open", round(live, 3), data]
     elif status == "CLOSED":
-        return ["Close", round(data2, 5), round(data, 5)]
+        return ["Close", round(data2, 3), round(data, 3)]
     elif status == "PRE":
         pre = stock_info.get_premarket_price(tick)
-        return ["Pre-Market", round(data2, 5), round(data, 5), pre]
+        return ["Pre-Market", round(data2, 3), round(data, 3), pre]
     elif status == "POSTPOST":
         pre = stock_info.get_postmarket_price(tick)
-        return ["Post-Market", round(data2, 5), round(data, 5), pre]
+        return ["Post-Market", round(data2, 3), round(data, 3), pre]
     if status == "REGULAR":
         live = stock_info.get_live_price(tick)
-        return ["Open", round(live, 5), data]
+        return ["Open", round(live, 3), data]
     else:
-        return [status, round(data, 5), round(data, 2)]
+        return [status, round(data, 3), round(data, 2)]
 
 
 def serve_layout():

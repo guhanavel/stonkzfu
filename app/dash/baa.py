@@ -2,6 +2,7 @@ from datetime import datetime
 
 import dash_bootstrap_components
 import google.protobuf.internal.wire_format
+from dash import callback_context
 
 from app.dash.function import *
 import warnings
@@ -16,13 +17,12 @@ def dash_app(server):
     app = dash.Dash(server=server, url_base_pathname='/', external_stylesheets=[dbc.themes.BOOTSTRAP],
                     title="Stonkzfu",
                     meta_tags=[{'name': 'viewport',
-                                'content': 'width=device-width, initial-scale=1, maximum-scale=1.2, minimum-scale=0.5'}])
+                                'content': 'width=device-width, initial-scale=1'}])
 
     # the styles for the main content position it to the right of the sidebar and
     # add some padding.
 
     CONTENT_STYLE = {
-        "transition": "margin-left .5s",
         "background-color": "#f8f9fa",
     }
 
@@ -45,12 +45,17 @@ def dash_app(server):
     cdivs = [html.Div(id="test"),
              dcc.Interval(
                  id='interval-component',
+                 interval=1 * 1000,  # in milliseconds
+                 n_intervals=0
+             ),
+             dcc.Interval(
+                 id='tilt',
                  interval=1 * 10000,  # in milliseconds
                  n_intervals=0
              ),
              dcc.Interval(
-                 id='inter',
-                 interval=1 * 500,  # in milliseconds
+                 id='milian',
+                 interval=1 * 60000,  # in milliseconds
                  n_intervals=0
              ),
              html.Div(html.Ul(children=[html.Li(html.Div(className="dropdown", children=[
@@ -62,15 +67,36 @@ def dash_app(server):
                  ])
              ])), html.Li(html.A(html.Img(src="../static/logo.png", height="50vh"), href="/"))])),
              dbc.Row(search_bar),
-             dbc.Row(html.Div(id="Test")),
+             dbc.Row(html.Div(id="time")),
              dbc.Row(
                  dbc.Col(html.Div([
-                     html.H4("Charts:"),
                      dcc.Graph(
 
-                         id="graph_close",
+                         id="data",
+                         config={
+                             'displayModeBar': False
+                         },
                      ),
-                 ]), xs=12, sm=12, md=12, lg=12, xl=12), justify='centre'),
+                     html.H4("Charts:"),
+                     dbc.Row(dbc.Col(html.Div([
+                         dbc.ButtonGroup([
+                             dbc.Button("1D", id="1d", color="light", n_clicks=0),
+                             dbc.Button('5D', id='5d', color="light", n_clicks=0),
+                             dbc.Button('1M', id="1m", color="light", n_clicks=0),
+                             dbc.Button('6M', id='6m', color="light", n_clicks=0),
+                             dbc.Button('YTD', id='ytd', color="light", n_clicks=0),
+                             dbc.Button("1Y", id='1y', color="light", n_clicks=0),
+                             dbc.Button("5Y", id='5y', color="light", n_clicks=0),
+                             dbc.Button("MAX", id='max', color="light", n_clicks=0)
+                         ],
+                             size='sm')]), style={'whiteSpace': 'nowrap'})),
+                     dcc.Graph(
+                         id="graph_close",
+                         config={
+                             'displayModeBar': False
+                         },
+                     ),
+                 ]), xs=12, sm=12, md=12, lg=12, xl=12), justify='left', align="left"),
              dbc.Row(
                  dbc.Col(
                      html.Div([
@@ -152,7 +178,7 @@ def dash_app(server):
     content = html.Div(cdivs, id="page-content", style=CONTENT_STYLE)
 
     app.layout = html.Div([dcc.Location(id="url", refresh=False),
-                           content], )
+                           content], style={"overflow": "hidden"})
 
     # this callback uses the current pathname to set the active state of the
     # corresponding nav link to true, allowing users to tell see page they are on
@@ -166,63 +192,138 @@ def dash_app(server):
     def input(search):
         return search[5:]
 
-    @app.callback(
-        Output('graph_close', 'figure'),
-        Input('url', 'search'), Input('interval-component', 'n_intervals'))
+    @app.callback(Output("time", "children"), Input('interval-component', 'n_intervals'))
+    def tim(n):
+        return serve_layout()
+
+    @app.callback(Output('data', 'figure'),
+                  Input('url', 'search'), Input('tilt', 'n_intervals'))
     def lota(search, n):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            dat = load_data(search[5:])
-            MA_200 = dat.rolling(window=200).mean()
-            MA_50 = dat.rolling(window=50).mean()
-            fig = make_subplots(rows=4, cols=2, specs=[[{"type": "indicator", "rowspan": 1, "colspan":1},{"type": "indicator", "rowspan": 1, "colspan":1}],
-                                                       [{"type": "scatter", "rowspan": 2, "colspan":2},None],
-                                                       [None,None],
-                                                       [{"type": "bar", "rowspan": 1,"colspan":2},None]])
+            fig = make_subplots(rows=2, cols=1, specs=[[{"type": "indicator", "rowspan": 1, "colspan": 1}],
+                                                       [{"type": "indicator", "rowspan": 1, "colspan": 1}],
+                                                       ],
+                                vertical_spacing=0)
             fig.add_trace(
                 go.Indicator(
                     mode="number+delta",
                     value=live_prices(search[5:])[1],
-                    number={'valueformat': 'f', 'suffix':"USD","font":{"size":20}},
-                    title={"text":"Status:"+str(live_prices(search[5:])[0]), "font":{"size":30},"align":"left"},
+                    number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 35}},
                     delta={'reference': live_prices(search[5:])[2], 'relative': True, 'position': "bottom"},
                     align="left",
 
                 ),
                 row=1, col=1
             ),
-            fig.add_trace(
-                go.Indicator(
-                    mode="number+delta",
-                    value=live_prices(search[5:])[-1],
-                    number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20}},
-                    title={"text": str(live_prices(search[5:])[0]) + ":", "font": {"size": 30}, "align": "left"},
-                    delta={'reference': live_prices(search[5:])[1], 'relative': True, 'position': "bottom"},
-                    align="left",
-                    visible=True if live_prices(search[5:])[0] != "Open" else False,
+            fig.add_trace(go.Indicator(
+                mode="number+delta",
+                value=live_prices(search[5:])[-1],
+                number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20},
+                        'prefix': str(live_prices(search[5:])[0]) + ":"},
+                delta={'reference': live_prices(search[5:])[1], 'relative': True, 'position': "bottom"},
+                align="left",
+                visible=True if live_prices(search[5:])[0] != "Open" else False,
+
+            ),
+
+                row=2, col=1
+
+            )
+            fig.update_layout(
+                autosize=False,
+                height=100,
+                margin=dict(
+                    l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(
+                    x=0,
+                    y=0.5,
+                    traceorder="normal",
 
                 ),
-                row=1, col=2
-            )
+            ),
+
+            return fig
+
+    @app.callback(
+        Output('graph_close', 'figure'),
+        Input('url', 'search'), Input('milian', 'n_intervals'),Input("1d", "n_clicks"), Input("5d", "n_clicks"),
+        Input("1m", "n_clicks"), Input("6m", "n_clicks"),Input("ytd","n_clicks"),Input("1y","n_clicks"),
+        Input("5y","n_clicks"),Input("max","n_clicks"), )
+    def lota(search, n,d1,d5,m1,m6,yd,y1,y5,ma):
+        changed_id = [p['prop_id'] for p in callback_context.triggered][0]
+        if search[5:] is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            if '5d' in changed_id:
+                dat = load_data(search[5:],'5d','30m',True)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '1d' in changed_id:
+                dat = load_data(search[5:],'1d','5m',False)
+                op = min(dat.index)
+                cl = min(dat.index)+hour
+            elif '1m' in changed_id:
+                dat = load_data(search[5:],'1mo','1d',False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '6m' in changed_id:
+                dat = load_data(search[5:],'6mo','1d',False)
+                op = min(dat.index).date()
+
+                cl = max(dat.index).date()
+            elif 'ytd' in changed_id:
+                dat = load_data(search[5:],'ytd','1d',False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '1y' in changed_id:
+                dat = load_data(search[5:],'1y','1d',False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '5y' in changed_id:
+                dat = load_data(search[5:],'5y','1d',False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif 'max' in changed_id:
+                dat = load_data(search[5:],'max','5d',False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            else:
+                dat = load_data(search[5:],'1d','2m',False)
+                op = min(dat.index)
+                cl = min(dat.index) + hour
+            upper = int(1.02 * max(dat.Close, key=int))
+
+            dan = stock_info.get_data(search[5:], start_date=TODAY - d, end_date=TODAY).reset_index()
+            if TODAY.strftime('%H:%M') > "21:00":
+                data = float(dan.loc[dan["index"] == (TODAY - e).strftime('%Y-%m-%d')]["adjclose"])
+            else:
+                data = float(dan.loc[dan["index"] == (TODAY - d).strftime('%Y-%m-%d')]["adjclose"])
+            lower = int(data)
+            fig = make_subplots(rows=4, cols=1, specs=[[{"type": "scatter", "rowspan": 3, "colspan": 1}],
+                                                       [None],
+                                                       [None],
+                                                       [{"type": "bar", "rowspan": 1, "colspan": 1}]
+                                                       ],
+                                vertical_spacing=0.20)
+
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
-                                     showlegend=True), row=2, col=1)
+                                     fill="tonexty",
+                                     showlegend=True), row=1, col=1)
 
             fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=list(MA_200.Close),
+                                     y=[data,]*420,
                                      visible=True,
-                                     name="MA_200",
-                                     showlegend=True), row=2, col=1)
+                                     name="Previous-Close",
+                                     line=dict(color='black',width=4,dash='dot')), row=1, col=1)
 
-            fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=list(MA_50.Close),
-                                     visible=True,
-                                     name="MA_50",
-                                     showlegend=True,
-                                     ), row=2, col=1)
+
             fig.add_trace(go.Bar(x=list(dat.index),
                                  y=list(dat.Volume),
                                  name="Volume", ),
@@ -230,42 +331,22 @@ def dash_app(server):
 
             fig.update_layout(
                 autosize=False,
-                yaxis=dict(fixedrange=True),
+                yaxis=dict(range=[lower,upper],fixedrange=True,),
                 xaxis=dict(
                     fixedrange=True,
-                    rangeselector=dict(
-                        buttons=list([
-                            dict(count=1,
-                                 label='1m',
-                                 step='month',
-                                 stepmode='backward'),
-                            dict(count=6,
-                                 label='6m',
-                                 step='month',
-                                 stepmode='backward'),
-                            dict(count=1,
-                                 label='YTD',
-                                 step='year',
-                                 stepmode='todate'),
-                            dict(count=1,
-                                 label='1y',
-                                 step='year',
-                                 stepmode='backward'),
-                            dict(step='all')
-                        ]),
-
-                    ),
-                    type='date'
-                ),
+                    range=[op,cl],
+                    type='date'),
                 margin=dict(
-                    l=0, r=0, t=50, b=0),
+                    l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
                 legend=dict(
                     x=0,
-                    y=0.5,
+                    y=1,
                     traceorder="normal",
-                )
-            ),
 
+                ),
+            )
             return fig
 
     @app.callback(
@@ -332,10 +413,4 @@ def dash_app(server):
             t_data = fin.to_dict("records")
             return columns, t_data
 
-        return sidebar_style, content_style, cur_nclick
-
-    @app.callback(Output('Test', 'children'),
-                  Input('inter', 'n_intervals'))
-    def inter(n):
-        return serve_layout()
     return app.server
