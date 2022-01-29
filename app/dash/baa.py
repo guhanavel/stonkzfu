@@ -69,7 +69,7 @@ def dash_app(server):
              dbc.Row(search_bar),
              dbc.Row(html.Div(id="time")),
              dbc.Row(
-                 dbc.Col(html.Div([
+                 [dbc.Col(html.Div([
                      dcc.Graph(
 
                          id="data",
@@ -95,26 +95,65 @@ def dash_app(server):
                          config={
                              'displayModeBar': False
                          },
+                         style={'width': '98h'},
                      ),
-                 ]), xs=12, sm=12, md=12, lg=12, xl=12), justify='left', align="left"),
-             dbc.Row(
-                 dbc.Col(
-                     html.Div([
-                         html.H4('About Company'),
-                         html.P(id="infom", style={"font-size": "small"})
-                     ]),
-                 )
-             ),
+                     dcc.Graph(
+                         id="vol",
+                         config={
+                             'displayModeBar': False
+                         },
+                         style={'width': '98h'},
+                     )
+                 ]), xs=12, sm=12, md=12, lg=8, xl=8),
+
+                     dbc.Col(
+                         html.Div([
+                             html.H4('General Information:'),
+                             html.Div(id='gen', style={"align": "left"}),
+                             html.Div([
+                                 html.H4("Earning:"),
+                                 dcc.Dropdown(
+                                     id="mode",
+                                     options=[
+                                         {'label': 'Quarterly Results', 'value': 'quarterly_results'},
+                                         {'label': 'Yearly Revenue Earnings', 'value': 'yearly_revenue_earnings'},
+                                         {'label': 'Quarterly Results', 'value': 'quarterly_revenue_earnings'}
+                                     ],
+                                     value="quarterly_results"
+
+                                 ),
+                                 dash_table.DataTable(
+                                     id='earn',
+                                     style_table={"height": "auto", },
+                                     style_cell={
+                                         "white_space": "center",
+                                         "height": "auto",
+                                         "font_size": "16px",
+                                         'textAlign': 'center'
+                                     },
+                                     style_data={"border": "#4d4d4d", },
+                                     style_header={
+                                         "border": "#4d4d4d",
+                                     },
+                                     style_cell_conditional=[
+                                         {"if": {"column_id": c}, "textAlign": "center"}
+                                         for c in ["attribute", "value"]
+                                     ],
+                                 ),
+                             ], className="six columns")
+                         ]),
+                         xs=12, sm=12, md=12, lg=4, xl=4),
+                 ], justify='left', align="left"),
              dbc.Row(
                  [
 
                      dbc.Col(html.Div([
                          html.Div([
                              html.H4("News:"),
-                             html.Div(id='news'),
+                             html.Div(id='news', style={"overflow-y": "scroll", "-webkit-overflow-scrolling": "touch"}),
                          ]
-                             , className="six columns", style={"text-align": "left", "font-size": "large"}),
-                     ]), width={"size": 6}, xs=12, sm=12, md=12, lg=6, xl=6),
+                         ),
+                     ]), width={"size": 6}, xs=12, sm=12, md=12, lg=12, xl=12),
                      dbc.Col(html.Div([
                          html.H4('Stonkzfu.com Predictions:'),
                          dash_table.DataTable(
@@ -135,44 +174,24 @@ def dash_app(server):
                                  for c in ["attribute", "value"]
                              ],
                          ),
-                         html.H4('General Information:'),
-                         html.Div(id='gen',
-                                  ),
-                         html.Div([
-                             html.H4("Earning:"),
-                             dcc.Dropdown(
-                                 id="mode",
-                                 options=[
-                                     {'label': 'Quarterly Results', 'value': 'quarterly_results'},
-                                     {'label': 'Yearly Revenue Earnings', 'value': 'yearly_revenue_earnings'},
-                                     {'label': 'Quarterly Results', 'value': 'quarterly_revenue_earnings'}
-                                 ],
-                                 value="quarterly_results"
 
-                             ),
-                             dash_table.DataTable(
-                                 id='earn',
-                                 style_table={"height": "auto", },
-                                 style_cell={
-                                     "white_space": "center",
-                                     "height": "auto",
-                                     "font_size": "16px",
-                                     'textAlign': 'center'
-                                 },
-                                 style_data={"border": "#4d4d4d", },
-                                 style_header={
-                                     "border": "#4d4d4d",
-                                 },
-                                 style_cell_conditional=[
-                                     {"if": {"column_id": c}, "textAlign": "center"}
-                                     for c in ["attribute", "value"]
-                                 ],
-                             ),
-                         ], className="six columns")
 
-                     ]), style={'padding-top': '0.5rem'}, width={"size": 6}, xs=12, sm=12, md=12, lg=6, xl=6),
+                     ]), style={'padding-top': '0.5rem'}, width={"size": 12}, xs=12, sm=12, md=12, lg=4, xl=4),
+                     dbc.Col(html.Div([
+                         html.H4('Recommendation:'),
+                        html.Div(id="recc")]))
+
 
                  ]),
+             dbc.Row(
+                 [
+                     dbc.Col(
+                         html.Div([
+                             html.H4('About Company'),
+                             html.P(id="infom", style={"font-size": "small"})
+                         ])),
+
+                 ], ),
              ]
 
     content = html.Div(cdivs, id="page-content", style=CONTENT_STYLE)
@@ -250,91 +269,84 @@ def dash_app(server):
 
     @app.callback(
         Output('graph_close', 'figure'),
-        Input('url', 'search'), Input('milian', 'n_intervals'),Input("1d", "n_clicks"), Input("5d", "n_clicks"),
-        Input("1m", "n_clicks"), Input("6m", "n_clicks"),Input("ytd","n_clicks"),Input("1y","n_clicks"),
-        Input("5y","n_clicks"),Input("max","n_clicks"), )
-    def lota(search, n,d1,d5,m1,m6,yd,y1,y5,ma):
+        Input('url', 'search'), Input('milian', 'n_intervals'), Input("1d", "n_clicks"), Input("5d", "n_clicks"),
+        Input("1m", "n_clicks"), Input("6m", "n_clicks"), Input("ytd", "n_clicks"), Input("1y", "n_clicks"),
+        Input("5y", "n_clicks"), Input("max", "n_clicks"), )
+    def lota(search, n, d1, d5, m1, m6, yd, y1, y5, ma):
         changed_id = [p['prop_id'] for p in callback_context.triggered][0]
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
             if '5d' in changed_id:
-                dat = load_data(search[5:],'5d','30m',True)
+                dat = load_data(search[5:], '5d', '30m', True)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif '1d' in changed_id:
-                dat = load_data(search[5:],'1d','5m',False)
+                dat = load_data(search[5:], '1d', '5m', False)
                 op = min(dat.index)
-                cl = min(dat.index)+hour
+                cl = min(dat.index) + hour
             elif '1m' in changed_id:
-                dat = load_data(search[5:],'1mo','1d',False)
+                dat = load_data(search[5:], '1mo', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif '6m' in changed_id:
-                dat = load_data(search[5:],'6mo','1d',False)
+                dat = load_data(search[5:], '6mo', '1d', False)
                 op = min(dat.index).date()
 
                 cl = max(dat.index).date()
             elif 'ytd' in changed_id:
-                dat = load_data(search[5:],'ytd','1d',False)
+                dat = load_data(search[5:], 'ytd', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif '1y' in changed_id:
-                dat = load_data(search[5:],'1y','1d',False)
+                dat = load_data(search[5:], '1y', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif '5y' in changed_id:
-                dat = load_data(search[5:],'5y','1d',False)
+                dat = load_data(search[5:], '5y', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif 'max' in changed_id:
-                dat = load_data(search[5:],'max','5d',False)
+                dat = load_data(search[5:], 'max', '5d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             else:
-                dat = load_data(search[5:],'1d','2m',False)
+                dat = load_data(search[5:], '1d', '2m', False)
                 op = min(dat.index)
                 cl = min(dat.index) + hour
             upper = int(1.02 * max(dat.Close, key=int))
-
+            status = stock_info.get_market_status()
             dan = stock_info.get_data(search[5:], start_date=TODAY - d, end_date=TODAY).reset_index()
             if TODAY.strftime('%H:%M') > "21:00":
                 data = float(dan.loc[dan["index"] == (TODAY - e).strftime('%Y-%m-%d')]["adjclose"])
+                best = min(data, float(dan[-1:]["open"]))
+            elif status == "CLOSED":
+                data = float(dan[-1:]["adjclose"])
+                best = min(data,float(dan[-1:]["open"]))
             else:
                 data = float(dan.loc[dan["index"] == (TODAY - d).strftime('%Y-%m-%d')]["adjclose"])
-            lower = int(data)
-            fig = make_subplots(rows=4, cols=1, specs=[[{"type": "scatter", "rowspan": 3, "colspan": 1}],
-                                                       [None],
-                                                       [None],
-                                                       [{"type": "bar", "rowspan": 1, "colspan": 1}]
-                                                       ],
-                                vertical_spacing=0.20)
-
+                best = min(data, float(dan[-1:]["open"]))
+            lower = int(best) * 0.98
+            fig = go.Figure()
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
                                      fill="tonexty",
-                                     showlegend=True), row=1, col=1)
+                                     showlegend=True))
 
             fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=[data,]*420,
+                                     y=[data, ] * 420,
                                      visible=True,
                                      name="Previous-Close",
-                                     line=dict(color='black',width=4,dash='dot')), row=1, col=1)
-
-
-            fig.add_trace(go.Bar(x=list(dat.index),
-                                 y=list(dat.Volume),
-                                 name="Volume", ),
-                          row=4, col=1)
+                                     line=dict(color='black', width=4, dash='dot')))
 
             fig.update_layout(
                 autosize=False,
-                yaxis=dict(range=[lower,upper],fixedrange=True,),
+                yaxis=dict(range=[lower, upper], fixedrange=True, ),
                 xaxis=dict(
                     fixedrange=True,
-                    range=[op,cl],
+                    range=[op, cl],
                     type='date'),
                 margin=dict(
                     l=0, r=0, t=0, b=0),
@@ -348,6 +360,92 @@ def dash_app(server):
                 ),
             )
             return fig
+
+    @app.callback(
+        Output('vol', 'figure'),
+        Input('url', 'search'), Input('milian', 'n_intervals'), Input("1d", "n_clicks"), Input("5d", "n_clicks"),
+        Input("1m", "n_clicks"), Input("6m", "n_clicks"), Input("ytd", "n_clicks"), Input("1y", "n_clicks"),
+        Input("5y", "n_clicks"), Input("max", "n_clicks"), )
+    def lota(search, n, d1, d5, m1, m6, yd, y1, y5, ma):
+        changed_id = [p['prop_id'] for p in callback_context.triggered][0]
+        if search[5:] is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            status = stock_info.get_market_status()
+            if '5d' in changed_id:
+                dat = load_data(search[5:], '5d', '30m', True)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '1d' in changed_id:
+                dat = load_data(search[5:], '1d', '5m', False)
+                op = min(dat.index)
+                cl = min(dat.index) + hour
+            elif '1m' in changed_id:
+                dat = load_data(search[5:], '1mo', '1d', False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '6m' in changed_id:
+                dat = load_data(search[5:], '6mo', '1d', False)
+                op = min(dat.index).date()
+
+                cl = max(dat.index).date()
+            elif 'ytd' in changed_id:
+                dat = load_data(search[5:], 'ytd', '1d', False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '1y' in changed_id:
+                dat = load_data(search[5:], '1y', '1d', False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif '5y' in changed_id:
+                dat = load_data(search[5:], '5y', '1d', False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            elif 'max' in changed_id:
+                dat = load_data(search[5:], 'max', '5d', False)
+                op = min(dat.index).date()
+                cl = max(dat.index).date()
+            else:
+                dat = load_data(search[5:], '1d', '2m', False)
+                op = min(dat.index)
+                cl = min(dat.index) + hour
+            upper = int(1.02 * max(dat.Close, key=int))
+
+            dan = stock_info.get_data(search[5:], start_date=TODAY - d, end_date=TODAY).reset_index()
+            if TODAY.strftime('%H:%M') > "21:00":
+                data = float(dan.loc[dan["index"] == (TODAY - e).strftime('%Y-%m-%d')]["adjclose"])
+            elif status == "CLOSED":
+                data = float(dan[-1:]["adjclose"])
+            else:
+                data = float(dan.loc[dan["index"] == (TODAY - d).strftime('%Y-%m-%d')]["adjclose"])
+            lower = int(data) * 0.98
+
+            fig = go.Figure(data=[go.Bar(x=list(dat.index),
+                                 y=list(dat.Volume),
+                                 name="Volume", )])
+
+            fig.update_layout(
+                autosize=False,
+                height=80,
+                yaxis=dict(fixedrange=True, ),
+                xaxis=dict(
+                    fixedrange=True,
+                    range=[op, cl],
+                    type='date'),
+                margin=dict(
+                    l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(
+                    x=0,
+                    y=1,
+                    traceorder="normal",
+
+                ),
+            )
+            return fig
+
+
 
     @app.callback(
         [Output("table", "columns"), Output("table", "data")],
@@ -383,9 +481,11 @@ def dash_app(server):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
+            dy = []
             ans = news_api(search[5:])
-            fin = pd.DataFrame(data=ans)
-            return dbc.Table.from_dataframe(fin, striped=True, bordered=True, hover=True, loading_state=True)
+            for i in ans["News"]:
+                dy.append(dbc.Col(dbc.Card([dbc.CardBody([html.P(i)])], style={'width': '100%'})))
+            return dbc.Row(dy)
 
     @app.callback(
         Output("infom", "children"),
@@ -413,4 +513,34 @@ def dash_app(server):
             t_data = fin.to_dict("records")
             return columns, t_data
 
+    @app.callback(
+        Output("recc", "children"),
+        Input('url', 'search')
+    )
+    def recc(search):
+        indi =  daq.Gauge(
+                    color={
+                        "ranges": {
+                            "red": [0, 2],
+                            "pink": [2, 4],
+                            "#ADD8E6": [4, 6],
+                            "#4169E1": [6, 8],
+                            "blue": [8, 10],
+                        },
+                    },
+                    scale={
+                        "custom": {
+                            1: {"label": "Strong Sell"},
+                            3: {"label": "Sell"},
+                            5: {"label": "Neutral"},
+                            7: {"label": "Buy"},
+                            9: {"label": "Strong Buy"},
+                        }
+                    },
+                    value=recom(search[5:]),
+                    max=10,
+                    min=0,
+                    style={"font-size":"20px"}
+                )
+        return indi
     return app.server

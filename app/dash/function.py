@@ -18,6 +18,7 @@ import pandas as pd
 import warnings
 import finnhub
 from pytz import timezone
+import dash_daq as daq
 
 warnings.filterwarnings('ignore')
 
@@ -37,7 +38,7 @@ day = timedelta.Timedelta(days=10)
 nyse = mcal.get_calendar('NYSE')
 early = nyse.schedule(start_date=TODAY, end_date=TODAY + day)[:3]
 early = [e.strftime('%Y-%m-%d') for e in early.index.tolist()]
-d = timedelta.Timedelta(days=2)
+d = timedelta.Timedelta(days=4)
 e = timedelta.Timedelta(days=1)
 hour = timedelta.Timedelta(hours=7)
 
@@ -71,8 +72,7 @@ def news_api(ne):
     for n in range(len(news)):
         fin["Date"].append(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(news[n]["providerPublishTime"])))
         fin["News"].append(html.A(html.P(news[n]['title']), href=news[n]['link']))
-    df2 = pd.DataFrame(data=fin)
-    return df2
+    return fin
 
 
 def load_data(Ticker,tim,inter,pre):
@@ -88,9 +88,13 @@ def graph(Ticker):
 
 
 def predict(tick):
+    dat = []
     sheet = client.open(tick).get_worksheet(2)
     datas = sheet.get_all_records()
-    return pd.DataFrame.from_dict(datas)
+    dat.append(datas[-3])
+    dat.append(datas[-2])
+    dat.append(datas[-1])
+    return pd.DataFrame.from_dict(dat)
 
 
 def info(tick):
@@ -131,18 +135,22 @@ def get_events():
 
 def live_prices(tick):
     dan = stock_info.get_data(tick, start_date=TODAY - d, end_date=TODAY).reset_index()
+    status = stock_info.get_market_status()
     if TODAY.strftime('%H:%M') > "21:00":
         data = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
         data2 = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
+    elif status == "CLOSED":
+        data = float(dan[-2:-1]["adjclose"])
+        data2 = float(dan[-1:]["adjclose"])
     else:
         data = float(dan.loc[dan["index"] == (TODAY-d).strftime('%Y-%m-%d')]["adjclose"])
         data2 = float(dan.loc[dan["index"] == (TODAY-e).strftime('%Y-%m-%d')]["adjclose"])
-    status = stock_info.get_market_status()
     if status == "OPEN":
         live = stock_info.get_live_price(tick)
         return ["Open", round(live, 3), data]
     elif status == "CLOSED":
-        return ["Close", round(data2, 3), round(data, 3)]
+        pre = stock_info.get_postmarket_price(tick)
+        return ["Close", round(data2, 3), round(data, 3),pre]
     elif status == "PRE":
         pre = stock_info.get_premarket_price(tick)
         return ["Pre-Market", round(data2, 3), round(data, 3), pre]
@@ -163,3 +171,12 @@ def serve_layout():
 
 def lay():
     return "Your Location Time:" + date.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+def recom(tick):
+    mn = {"strongsell":1,"sell":3,"hold":5,"buy":7,"stongbuy":9}
+    dic = finnhub_client.recommendation_trends(tick)[-1]
+    perid = dic.pop('period')
+    dic.pop('symbol')
+    val_list = list(dic.values())
+    key_list = list(dic.keys())
+    return mn[key_list[val_list.index(max(dic.values()))]]
