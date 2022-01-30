@@ -53,3 +53,20 @@ li a:hover {
 .dropdown:hover .dropbtn {
   background-color: #ffffff;
 }
+
+div.scrollmenu {
+  overflow: auto;
+  width:100%;
+  white-space: nowrap;
+  align:stretch;
+}
+
+div.scrollmenu div {
+  display: inline-block;
+  height: 100%;
+  padding: 2px;
+  justify:center;
+  white-space: pre-wrap;
+  text-decoration: none;
+}
+

@@ -50,7 +50,7 @@ def dash_app(server):
              ),
              dcc.Interval(
                  id='tilt',
-                 interval=1 * 10000,  # in milliseconds
+                 interval=10000,  # in milliseconds
                  n_intervals=0
              ),
              dcc.Interval(
@@ -95,14 +95,14 @@ def dash_app(server):
                          config={
                              'displayModeBar': False
                          },
-                         style={'width': '98h'},
+                         style={'width': '98h', "-webkit-overflow-scrolling": "touch"},
                      ),
                      dcc.Graph(
                          id="vol",
                          config={
                              'displayModeBar': False
                          },
-                         style={'width': '98h'},
+                         style={'width': '98h', "-webkit-overflow-scrolling": "touch"},
                      )
                  ]), xs=12, sm=12, md=12, lg=8, xl=8),
 
@@ -150,7 +150,17 @@ def dash_app(server):
                      dbc.Col(html.Div([
                          html.Div([
                              html.H4("News:"),
-                             html.Div(id='news', style={"overflow-y": "scroll", "-webkit-overflow-scrolling": "touch"}),
+                             html.Div([
+                                 dcc.DatePickerRange(
+                                     id='my-date-picker-range',
+                                     min_date_allowed=dt(1990, 1, 1),
+                                     max_date_allowed=dt.today(),
+                                     initial_visible_month=dt.today(),
+                                     end_date=dt.today(),
+                                     start_date=dt.today()-e
+                                 ),
+                             ]),
+                             html.Div(id='news',className="scrollmenu"),
                          ]
                          ),
                      ]), width={"size": 6}, xs=12, sm=12, md=12, lg=12, xl=12),
@@ -175,12 +185,20 @@ def dash_app(server):
                              ],
                          ),
 
-
-                     ]), style={'padding-top': '0.5rem'}, width={"size": 12}, xs=12, sm=12, md=12, lg=4, xl=4),
+                     ]), style={'padding-top': '0.5rem'}, width={"size": 12}, xs=12, sm=12, md=12, lg=3, xl=3),
                      dbc.Col(html.Div([
                          html.H4('Recommendation:'),
-                        html.Div(id="recc")]))
-
+                         html.Div(id="recc")]), width={"size": 12}, xs=12, sm=12, md=12, lg=3, xl=3),
+                     dbc.Col(html.Div([
+                         html.H4('Social Media Trends:'),
+                         dcc.Graph(
+                             id="social",
+                             config={
+                                 'displayModeBar': False
+                             },
+                             style={'width': '98h'},
+                         ),
+                     ]), xs=12, sm=12, md=12, lg=6, xl=6)
 
                  ]),
              dbc.Row(
@@ -215,12 +233,25 @@ def dash_app(server):
     def tim(n):
         return serve_layout()
 
+    @app.callback(Output('milian', "interval"), Input('url', 'search'))
+    def check(search):
+        if search[5:] is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            if stock_info.get_market_status() == "OPEN":
+                return 60000
+            elif stock_info.get_market_status() == "OPEN":
+                return 60000
+            else:
+                return 36000000
+
     @app.callback(Output('data', 'figure'),
                   Input('url', 'search'), Input('tilt', 'n_intervals'))
     def lota(search, n):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
+            status = stock_info.get_market_status()
             fig = make_subplots(rows=2, cols=1, specs=[[{"type": "indicator", "rowspan": 1, "colspan": 1}],
                                                        [{"type": "indicator", "rowspan": 1, "colspan": 1}],
                                                        ],
@@ -228,9 +259,9 @@ def dash_app(server):
             fig.add_trace(
                 go.Indicator(
                     mode="number+delta",
-                    value=live_prices(search[5:])[1],
+                    value=live_prices(search[5:])[2],
                     number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 35}},
-                    delta={'reference': live_prices(search[5:])[2], 'relative': True, 'position': "bottom"},
+                    delta={'reference': live_prices(search[5:])[1], 'relative': True, 'position': "bottom"},
                     align="left",
 
                 ),
@@ -241,7 +272,8 @@ def dash_app(server):
                 value=live_prices(search[5:])[-1],
                 number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20},
                         'prefix': str(live_prices(search[5:])[0]) + ":"},
-                delta={'reference': live_prices(search[5:])[1], 'relative': True, 'position': "bottom"},
+                delta={'reference': live_prices(search[5:])[2] if status == "CLOSED" else live_prices(search[5:])[1],
+                       'relative': True, 'position': "bottom"},
                 align="left",
                 visible=True if live_prices(search[5:])[0] != "Open" else False,
 
@@ -278,72 +310,88 @@ def dash_app(server):
             raise dash.exceptions.PreventUpdate
         else:
             if '5d' in changed_id:
-                dat = load_data(search[5:], '5d', '30m', True)
+                dat = load_data(search[5:], '5d', '15m', True)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             elif '1d' in changed_id:
                 dat = load_data(search[5:], '1d', '5m', False)
                 op = min(dat.index)
                 cl = min(dat.index) + hour
+                vis = True
             elif '1m' in changed_id:
                 dat = load_data(search[5:], '1mo', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             elif '6m' in changed_id:
                 dat = load_data(search[5:], '6mo', '1d', False)
                 op = min(dat.index).date()
-
                 cl = max(dat.index).date()
+                vis = False
             elif 'ytd' in changed_id:
                 dat = load_data(search[5:], 'ytd', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             elif '1y' in changed_id:
                 dat = load_data(search[5:], '1y', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             elif '5y' in changed_id:
                 dat = load_data(search[5:], '5y', '1d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             elif 'max' in changed_id:
                 dat = load_data(search[5:], 'max', '5d', False)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
+                vis = False
             else:
                 dat = load_data(search[5:], '1d', '2m', False)
                 op = min(dat.index)
                 cl = min(dat.index) + hour
-            upper = int(1.02 * max(dat.Close, key=int))
+                vis = True
             status = stock_info.get_market_status()
-            dan = stock_info.get_data(search[5:], start_date=TODAY - d, end_date=TODAY).reset_index()
-            if TODAY.strftime('%H:%M') > "21:00":
-                data = float(dan.loc[dan["index"] == (TODAY - e).strftime('%Y-%m-%d')]["adjclose"])
-                best = min(data, float(dan[-1:]["open"]))
+            dan = yf.download(search[5:], period="5d")
+            if status == "REGULAR":
+                yes = float(dan[-2:-1].Close)  # previous
             elif status == "CLOSED":
-                data = float(dan[-1:]["adjclose"])
-                best = min(data,float(dan[-1:]["open"]))
+                yes = float(dan[-2:-1].Close)  # previous
             else:
-                data = float(dan.loc[dan["index"] == (TODAY - d).strftime('%Y-%m-%d')]["adjclose"])
-                best = min(data, float(dan[-1:]["open"]))
-            lower = int(best) * 0.98
+                yes = float(dan[-1:].Close)  # previous
+            lower = min(yes, min(list(dat.Close))) * 0.98
+            upper = max(list(dat.Close)) * 1.02
+
+            def what():
+                if live_prices(search[5:])[2] > dat.Close.iloc[0]:
+                    return 'green'
+                elif live_prices(search[5:])[2] < dat.Close.iloc[0]:
+                    return 'red'
+                else:
+                    return 'grey'
+
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=list(dat.index),
                                      y=list(dat.Close),
                                      visible=True,
                                      name="Close",
-                                     fill="tonexty",
-                                     showlegend=True))
+                                     showlegend=True,
+                                     line=dict(color=what(), width=1),
+                                     stackgroup='one'))
 
             fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=[data, ] * 420,
-                                     visible=True,
+                                     y=[yes, ] * 420,
+                                     visible=vis,
                                      name="Previous-Close",
                                      line=dict(color='black', width=4, dash='dot')))
 
             fig.update_layout(
                 autosize=False,
-                yaxis=dict(range=[lower, upper], fixedrange=True, ),
+                hovermode="x unified",
+                yaxis=dict(range=[lower, upper], fixedrange=True),
                 xaxis=dict(
                     fixedrange=True,
                     range=[op, cl],
@@ -371,9 +419,8 @@ def dash_app(server):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            status = stock_info.get_market_status()
             if '5d' in changed_id:
-                dat = load_data(search[5:], '5d', '30m', True)
+                dat = load_data(search[5:], '5d', '15m', True)
                 op = min(dat.index).date()
                 cl = max(dat.index).date()
             elif '1d' in changed_id:
@@ -409,20 +456,9 @@ def dash_app(server):
                 dat = load_data(search[5:], '1d', '2m', False)
                 op = min(dat.index)
                 cl = min(dat.index) + hour
-            upper = int(1.02 * max(dat.Close, key=int))
-
-            dan = stock_info.get_data(search[5:], start_date=TODAY - d, end_date=TODAY).reset_index()
-            if TODAY.strftime('%H:%M') > "21:00":
-                data = float(dan.loc[dan["index"] == (TODAY - e).strftime('%Y-%m-%d')]["adjclose"])
-            elif status == "CLOSED":
-                data = float(dan[-1:]["adjclose"])
-            else:
-                data = float(dan.loc[dan["index"] == (TODAY - d).strftime('%Y-%m-%d')]["adjclose"])
-            lower = int(data) * 0.98
-
             fig = go.Figure(data=[go.Bar(x=list(dat.index),
-                                 y=list(dat.Volume),
-                                 name="Volume", )])
+                                         y=list(dat.Volume),
+                                         name="Volume", )])
 
             fig.update_layout(
                 autosize=False,
@@ -444,8 +480,6 @@ def dash_app(server):
                 ),
             )
             return fig
-
-
 
     @app.callback(
         [Output("table", "columns"), Output("table", "data")],
@@ -475,17 +509,21 @@ def dash_app(server):
 
     @app.callback(
         Output("news", "children"),
-        Input('url', 'search')
+        Input('url', 'search'), Input('my-date-picker-range', 'start_date'),
+        Input('my-date-picker-range', 'end_date')
     )
-    def date(search):
+    def date(search,start_date,end_date):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            dy = []
-            ans = news_api(search[5:])
-            for i in ans["News"]:
-                dy.append(dbc.Col(dbc.Card([dbc.CardBody([html.P(i)])], style={'width': '100%'})))
-            return dbc.Row(dy)
+            if start_date is not None:
+                start_date_object = dt.fromisoformat(start_date)
+                start = start_date_object.strftime('%m/%d/%Y')
+            if end_date is not None:
+                end_date_object = dt.fromisoformat(end_date)
+                end = end_date_object.strftime('%m/%d/%Y')
+            ans = news_api(search[5:],start,end)
+            return ans
 
     @app.callback(
         Output("infom", "children"),
@@ -518,30 +556,101 @@ def dash_app(server):
         Input('url', 'search')
     )
     def recc(search):
-        indi =  daq.Gauge(
-                    color={
-                        "ranges": {
-                            "red": [0, 2],
-                            "pink": [2, 4],
-                            "#ADD8E6": [4, 6],
-                            "#4169E1": [6, 8],
-                            "blue": [8, 10],
-                        },
-                    },
-                    scale={
-                        "custom": {
-                            1: {"label": "Strong Sell"},
-                            3: {"label": "Sell"},
-                            5: {"label": "Neutral"},
-                            7: {"label": "Buy"},
-                            9: {"label": "Strong Buy"},
-                        }
-                    },
-                    value=recom(search[5:])[0],
-                    max=10,
-                    min=0,
-                    label="As off:" + " "  + str(recom(search[5:])[1]),
-                    style={"font-size":"20px"}
-                )
+        indi = daq.Gauge(
+            color={
+                "ranges": {
+                    "red": [0, 2],
+                    "pink": [2, 4],
+                    "#ADD8E6": [4, 6],
+                    "#4169E1": [6, 8],
+                    "blue": [8, 10],
+                },
+            },
+            scale={
+                "custom": {
+                    1: {"label": "Strong Sell"},
+                    3: {"label": "Sell"},
+                    5: {"label": "Neutral"},
+                    7: {"label": "Buy"},
+                    9: {"label": "Strong Buy"},
+                }
+            },
+            value=recom(search[5:])[0],
+            max=10,
+            min=0,
+            label="As off:" + " " + str(recom(search[5:])[1]),
+            style={"font-size": "20px"}
+        )
         return indi
+
+    @app.callback(
+        Output('social', 'figure'),
+        Input('url', 'search'), )
+    def social(search):
+        if search[5:] is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            indices = sm(search[5:]).index
+            reddit = sm(search[5:])["red_add"]
+            twitter = sm(search[5:])["twi_add"]
+            overall = sm(search[5:])["o_sum"]
+            red_m = sm(search[5:])["red_mention"]
+            twi_m = sm(search[5:])["twi_mention"]
+            mention = sm(search[5:])["mention"]
+            fig = make_subplots(rows=1, cols=2, subplot_titles=("Sentiment Score", "Mentions"))
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(reddit),
+                                     visible=True,
+                                     name="Reddit",
+                                     showlegend=True,
+                                     line=dict(color='red', width=1)), row=1, col=1)
+
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(twitter),
+                                     visible=True,
+                                     name="Twitter",
+                                     line=dict(color='blue', width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(overall),
+                                     visible=True,
+                                     name="Overall",
+                                     line=dict(color='black', width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(red_m),
+                                     visible=True,
+                                     name="Reddit",
+                                     showlegend=False,
+                                     line=dict(color='red', width=1)), row=1, col=2)
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(twi_m),
+                                     visible=True,
+                                     name="Twitter",
+                                     showlegend=False,
+                                     line=dict(color='blue', width=1)), row=1, col=2)
+            fig.add_trace(go.Scatter(x=list(indices),
+                                     y=list(mention),
+                                     visible=True,
+                                     name="Overall",
+                                     showlegend=False,
+                                     line=dict(color='black', width=1)), row=1, col=2)
+            fig.update_layout(
+                autosize=False,
+                hovermode="x unified",
+                height=250,
+                yaxis=dict(fixedrange=True, ),
+                xaxis=dict(
+                    fixedrange=True,
+                    type='date'),
+                margin=dict(
+                    l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(
+                    x=0,
+                    y=1,
+                    traceorder="normal",
+
+                ),
+            ),
+        return fig
     return app.server
