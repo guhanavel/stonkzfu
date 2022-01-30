@@ -537,9 +537,10 @@ def dash_app(server):
                             9: {"label": "Strong Buy"},
                         }
                     },
-                    value=recom(search[5:]),
+                    value=recom(search[5:])[0],
                     max=10,
                     min=0,
+                    label="As off:" + " "  + str(recom(search[5:])[1]),
                     style={"font-size":"20px"}
                 )
         return indi

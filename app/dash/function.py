@@ -179,4 +179,4 @@ def recom(tick):
     dic.pop('symbol')
     val_list = list(dic.values())
     key_list = list(dic.keys())
-    return mn[key_list[val_list.index(max(dic.values()))]]
+    return mn[key_list[val_list.index(max(dic.values()))]], perid
