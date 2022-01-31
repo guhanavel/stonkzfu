@@ -305,6 +305,8 @@ def stock_cards(tick):
                 autosize=False,
                 height=200,
                 width=200,
+                xaxis=dict(fixedrange=True),
+                yaxis=dict(fixedrange=True),
                 margin=dict(
                     l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -350,10 +352,7 @@ def stock_cards(tick):
                     ), ],
                 className="mb-3",
                 style={"maxWidth": "540px"},
-            )))
-
-
-
+            ),xs=12, sm=12, md=12, lg=6, xl=6))
         except:
             pass
     return dy

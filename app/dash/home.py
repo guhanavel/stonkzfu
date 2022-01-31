@@ -48,7 +48,7 @@ def dash_pp(server):
             ),
             dcc.Interval(
                 id='milian',
-                interval=1 * 60000,  # in milliseconds
+                interval=1 * 600000,  # in milliseconds
                 n_intervals=0
             ),
             html.Div(html.Ul(children=[html.Li(html.Div(className="dropdown", children=[

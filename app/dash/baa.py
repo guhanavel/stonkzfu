@@ -240,7 +240,7 @@ def dash_app(server):
             if stat() == "Open":
                 return 60000
             else:
-                return 36000000
+                return 360000
 
     @app.callback(Output('data', 'figure'),
                   Input('url', 'search'), Input('tilt', 'n_intervals'))
