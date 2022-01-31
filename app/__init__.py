@@ -22,6 +22,10 @@ def init_app():
         from . import routes
         # Import Dash application
         from app.dash.baa import dash_app
+        from app.dash.home import dash_pp
+
         app = dash_app(app)
+        app = dash_pp(app)
 
         return app
+

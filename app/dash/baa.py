@@ -14,7 +14,7 @@ opt = lookup(NASQ)
 
 
 def dash_app(server):
-    app = dash.Dash(server=server, url_base_pathname='/', external_stylesheets=[dbc.themes.BOOTSTRAP],
+    app = dash.Dash(server=server, url_base_pathname='/das/', external_stylesheets=[dbc.themes.BOOTSTRAP],
                     title="Stonkzfu",
                     meta_tags=[{'name': 'viewport',
                                 'content': 'width=device-width, initial-scale=1'}])
@@ -29,7 +29,7 @@ def dash_app(server):
     search_bar = dbc.Row(
         [
             dbc.Col(dcc.Dropdown(id='Stock', options=opt),
-                    style={'height': '30px', 'width': '100px', "padding-left": "10px"}),
+                    style={'height': '30px', 'width': '100px', "padding-left": "10px","border-radius":"25px"}),
             dbc.Col(
                 dbc.Button(
                     html.Img(src="../static/search.png", height="20vh"), id="Search", n_clicks=0, color="light",
@@ -39,7 +39,6 @@ def dash_app(server):
             ),
         ],
         className="g-0 ms-auto flex-nowrap mt-3 mt-md-0",
-        align="center",
     )
 
     cdivs = [html.Div(id="test"),
@@ -66,8 +65,8 @@ def dash_app(server):
                      html.A("Home", href='/'), html.A("Calendar", href='/cal')
                  ])
              ])), html.Li(html.A(html.Img(src="../static/logo.png", height="50vh"), href="/"))])),
-             dbc.Row(search_bar),
-             dbc.Row(html.Div(id="time")),
+             html.Marquee(id="price"),
+             dbc.Row([dbc.Col(html.Div([search_bar]),xs=12, sm=12, md=12, lg=4, xl=4),dbc.Col(html.Div(id="time"),xs=12, sm=12, md=12, lg={"size":4,"offset":4}, xl={"size":4,"offset":4})]),
              dbc.Row(
                  [dbc.Col(html.Div([
                      dcc.Graph(
@@ -653,4 +652,8 @@ def dash_app(server):
                 ),
             ),
         return fig
+
+    @app.callback(Output("price","children"),Input('tilt', 'n_intervals'))
+    def sy(n):
+        return prices(["AAPL","MSFT","AMZN","GOOGl","FB","NVDA","UNH"])
     return app.server

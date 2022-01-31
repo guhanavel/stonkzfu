@@ -1,3 +1,4 @@
+import flask
 from flask import render_template
 from flask import current_app as app
 from .dash.function import get_events
@@ -5,15 +6,15 @@ from .dash.function import get_events
 events = get_events()
 
 
-@app.route('/')
+@app.route('/a')
 def home():
-    return render_template("home.html")
+    return flask.redirect('/')
 
 
-@app.route('/')
+@app.route('/das')
 def dash():
     """Landing page."""
-    return render_template()
+    return flask.redirect('/das')
 
 
 @app.route('/cal')

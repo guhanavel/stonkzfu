@@ -10,13 +10,14 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 from dash import dash_table
 from dash.dependencies import Input, Output, State
-import datetime as date,timedelta
+import datetime as date, timedelta
 from datetime import date as dt
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import pandas_market_calendars as mcal
 import pandas as pd
 import warnings
+
 warnings.filterwarnings('ignore')
 import finnhub
 from pytz import timezone
@@ -24,8 +25,6 @@ import dash_table
 import dash_daq as daq
 import numpy as np
 from GoogleNews import GoogleNews
-
-
 
 warnings.filterwarnings('ignore')
 
@@ -66,6 +65,12 @@ def lookup(cs):
         ls.append({'label': c[1] + " : " + c[0], 'value': c[0]})
     return ls
 
+def newp(cs):
+    ls = []
+    for c in cs:
+        ls.append({'label': c[1] + " : " + c[0], 'value':dcc.Link(href='/das/?val='+str(c[0]))})
+
+
 def sy_name(cs):
     di = {}
     for c in cs:
@@ -76,31 +81,33 @@ def sy_name(cs):
 def earnings(Ticker, types):
     return stock_info.get_earnings(Ticker)[types]
 
+
 NASQ = read_csv(r"app/static/AAll.csv")
 sy = sy_name(NASQ)
 
-def news_api(tick,start,end):
+
+def news_api(tick, start, end):
     dy = []
     googlenews = GoogleNews(lang='en', region='US', start=start, end=end)
-    googlenews.search(sy[tick]+ " stock")
+    googlenews.search(sy[tick] + " stock")
     a = googlenews.result()
     for n in a:
         dy.append(html.Div(dbc.Card(
             [
                 dbc.CardBody(
                     [
-                        html.H5(n['title'],style={"font-size":"small"}),
+                        html.H5(n['title'], style={"font-size": "small"}),
                         dbc.Button("View", href=n['link'])
 
-                        ]
+                    ]
 
                 ),
-                ],style={"width": "18rem",},),))
+            ], style={"width": "18rem", }, ), ))
     return dy
 
 
-def load_data(Ticker,tim,inter,pre):
-    data = yf.download(Ticker,period=tim,interval=inter,auto_adjust=True,prepost=pre)
+def load_data(Ticker, tim, inter, pre):
+    data = yf.download(Ticker, period=tim, interval=inter, auto_adjust=True, prepost=pre)
     data.reset_index()
     return data
 
@@ -158,16 +165,16 @@ def get_events():
 
 
 def live_prices(tick):
-    dan = yf.download(tick,period="5d")
+    dan = yf.download(tick, period="5d")
     status = stock_info.get_market_status()
-    yes = float(dan[-1:].Close) #yesterday
-    yyes = float(dan[-2:-1].Close) #previous
+    yes = float(dan[-1:].Close)  # yesterday
+    yyes = float(dan[-2:-1].Close)  # previous
     if status == "OPEN":
         live = stock_info.get_live_price(tick)
         return ["Open", round(live, 3), yyes]
     elif status == "CLOSED":
         pre = stock_info.get_postmarket_price(tick)
-        return ["Close; After-Market", round(yyes, 3),round(yes, 3),pre]
+        return ["Close; After-Market", round(yyes, 3), round(yes, 3), pre]
     elif status == "PRE":
         pre = stock_info.get_premarket_price(tick)
         return ["Pre-Market", round(yes, 3), pre]
@@ -178,7 +185,7 @@ def live_prices(tick):
         live = stock_info.get_live_price(tick)
         return ["Open", round(live, 3), yyes]
     else:
-        return [status, round(yes, 3), round(yes, 3)]
+        return [status[:3], round(yes, 3), round(yes, 3)]
 
 
 def serve_layout():
@@ -186,11 +193,13 @@ def serve_layout():
     utc_time = date.datetime.now()
     return "US TIME:" + date.datetime.now(eastern).strftime('%Y-%m-%d %H:%M:%S')
 
+
 def lay():
     return "Your Location Time:" + date.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+
 def recom(tick):
-    mn = {"strongsell":1,"sell":3,"hold":5,"buy":7,"stongbuy":9}
+    mn = {"strongsell": 1, "sell": 3, "hold": 5, "buy": 7, "stongbuy": 9}
     dic = finnhub_client.recommendation_trends(tick)[-1]
     perid = dic.pop('period')
     dic.pop('symbol')
@@ -198,21 +207,53 @@ def recom(tick):
     key_list = list(dic.keys())
     return mn[key_list[val_list.index(max(dic.values()))]], perid
 
+
 def sm(tick):
     sm = finnhub_client.stock_social_sentiment(tick)
     red = pd.DataFrame.from_dict(sm["reddit"])
     twi = pd.DataFrame.from_dict(sm["twitter"])
-    red["atTime"] = pd.DatetimeIndex(red.atTime,tz='UTC').tz_convert("US/Eastern")
-    twi["atTime"] = pd.DatetimeIndex(twi.atTime,tz='UTC').tz_convert("US/Eastern")
+    red["atTime"] = pd.DatetimeIndex(red.atTime, tz='UTC').tz_convert("US/Eastern")
+    twi["atTime"] = pd.DatetimeIndex(twi.atTime, tz='UTC').tz_convert("US/Eastern")
     red["s_add"] = red.score[::-1].cumsum(axis=0)
-    twi["s_add"]= twi.score[::-1].cumsum(axis=0)
-    red =  red.set_index("atTime")
+    twi["s_add"] = twi.score[::-1].cumsum(axis=0)
+    red = red.set_index("atTime")
     twi = twi.set_index("atTime")
-    data = [twi["s_add"],red["s_add"],twi["score"],red["score"],red["mention"],twi["mention"]]
-    headers = ["red_add","twi_add","twi_score","red_score","red_mention","twi_mention"]
-    df = pd.concat(data, axis=1,keys=headers).fillna(0)
-    df["overall"] = df["twi_score"]+df["red_score"]
+    data = [twi["s_add"], red["s_add"], twi["score"], red["score"], red["mention"], twi["mention"]]
+    headers = ["red_add", "twi_add", "twi_score", "red_score", "red_mention", "twi_mention"]
+    df = pd.concat(data, axis=1, keys=headers).fillna(0)
+    df["overall"] = df["twi_score"] + df["red_score"]
     df["o_sum"] = df["overall"].cumsum(axis=0)
-    df["mention"] = df["red_mention"]+df["twi_mention"]
+    df["mention"] = df["red_mention"] + df["twi_mention"]
     return df
 
+
+def prices(cs):
+    dy = []
+    for a in cs:
+        try:
+            state = stock_info.get_live_price(a)
+        except:
+            state = 0
+        dy.append(str(a) + ":$" + str(round(state,2))+"USD  ")
+    return dy
+
+def gain():
+    gain = stock_info.get_day_gainers()[:10]
+    data = [gain["Symbol"],gain["Name"],gain["Price (Intraday)"],gain["Change"],gain["% Change"]]
+    headers = ["Symbol","Name","Price","Change","% Change"]
+    df = pd.concat(data, axis=1, keys=headers)
+    return df
+
+def lose():
+    gain = stock_info.get_day_losers()[:10]
+    data = [gain["Symbol"], gain["Name"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
+    headers = ["Symbol", "Name", "Price", "Change", "% Change"]
+    df = pd.concat(data, axis=1, keys=headers)
+    return df
+
+def active():
+    gain = stock_info.get_day_most_active()[:10]
+    data = [gain["Symbol"], gain["Name"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
+    headers = ["Symbol", "Name", "Price", "Change", "% Change"]
+    df = pd.concat(data, axis=1, keys=headers)
+    return df
