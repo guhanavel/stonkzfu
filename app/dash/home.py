@@ -11,6 +11,7 @@ warnings.filterwarnings('ignore')
 
 NASQ = read_csv(r"app/static/AAll.csv")
 opt = lookup(NASQ)
+T = read_csv(r"app/static/Top25.csv")
 
 
 def dash_pp(server):
@@ -62,14 +63,17 @@ def dash_pp(server):
             dbc.Row([dbc.Col(html.Div([search_bar], style={"overflow": "visible"}), xs=12, sm=12, md=12, lg=4, xl=4),
                      dbc.Col(html.Div(id="time"), xs=12, sm=12, md=12, lg={"size": 4, "offset": 4},
                              xl={"size": 4, "offset": 4})]),
-            dbc.Row(dbc.Col(html.Div([
-                dbc.ButtonGroup([
+            dbc.Row(id="dora",style={"padding-top":"10px"}),
+            dbc.Row(
+                [dbc.Col(
+                    html.Div([
+                        dbc.ButtonGroup([
                     dbc.Button("Gainers", id="gain", color="light", n_clicks=0),
                     dbc.Button('Losers', id='lose', color="light", n_clicks=0),
                     dbc.Button('Active', id="active", color="light", n_clicks=0),
                 ],
-                    size='sm')]), style={'whiteSpace': 'nowrap'})),
-            dbc.Row(html.Div([dash_table.DataTable(
+                    size='sm'),
+                dash_table.DataTable(
                 id='perform',
                 style_cell_conditional=[
                     {
@@ -97,9 +101,10 @@ def dash_pp(server):
                     'backgroundColor': 'rgb(210, 210, 210)',
                     'color': 'black',
                     'fontWeight': 'bold'
-                }
+                },
+                style_table={'overflowX':'scroll'},
 
-            ), ]))
+            ), ]))])
 
             ]
     CONTENT_STYLE = {
@@ -108,7 +113,7 @@ def dash_pp(server):
     content = html.Div(head, id="page-content", style=CONTENT_STYLE)
 
     dap.layout = html.Div([dcc.Location(id="url", refresh=False),
-                           content], style={"overflow": "visible"})
+                           content], style={"overflow": "hidden"})
 
     @dap.callback(Output('Search', 'href'), Input("Stock", "value"))
     def out(value):
@@ -140,5 +145,9 @@ def dash_pp(server):
         columns = [{"name": i, "id": i} for i in data.columns]
         t_data = data.to_dict("records")
         return columns, t_data
+
+    @dap.callback(Output("dora","children"),Input('milian', 'n_intervals'))
+    def card(n):
+        return stock_cards(T)
 
     return dap.server

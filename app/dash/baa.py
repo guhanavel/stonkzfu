@@ -237,9 +237,7 @@ def dash_app(server):
         if search[5:] is None:
             raise dash.exceptions.PreventUpdate
         else:
-            if stock_info.get_market_status() == "OPEN":
-                return 60000
-            elif stock_info.get_market_status() == "OPEN":
+            if stat() == "Open":
                 return 60000
             else:
                 return 36000000
@@ -381,11 +379,11 @@ def dash_app(server):
                                      line=dict(color=what(), width=1),
                                      stackgroup='one'))
 
-            fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=[yes, ] * 420,
+            fig.add_trace(go.Scatter(x=[op, cl],
+                                     y=[yes, ]*420,
                                      visible=vis,
                                      name="Previous-Close",
-                                     line=dict(color='black', width=4, dash='dot')))
+                                     line=dict(color='black', width=1, dash='dot')))
 
             fig.update_layout(
                 autosize=False,
