@@ -172,7 +172,7 @@ def live_prices(tick):
     yyes = float(dan[-2:-1].Close)  # previous
     if status == "OPEN":
         live = stock_info.get_live_price(tick)
-        return ["Open", round(live, 3), yyes]
+        return ["Open", yyes,round(live, 3)]
     elif status == "CLOSED":
         pre = stock_info.get_postmarket_price(tick)
         return ["Close; After-Market", round(yyes, 3), round(yes, 3), pre]
@@ -184,7 +184,7 @@ def live_prices(tick):
         return ["Post-Market", round(yyes, 3), round(yes, 3), pre]
     if status == "REGULAR":
         live = stock_info.get_live_price(tick)
-        return ["Open", round(live, 3), yyes]
+        return ["Open", yyes, round(live, 3)]
     else:
         return [status[:3], round(yes, 3), round(yes, 3)]
 
