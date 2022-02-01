@@ -257,24 +257,24 @@ def prices(cs):
 
 def gain():
     gain = stock_info.get_day_gainers()[:10]
-    data = [gain["Symbol"], gain["Name"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
-    headers = ["Symbol", "Name", "Price", "Change", "% Change"]
+    data = [gain["Symbol"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
+    headers = ["Symbol", "Price", "Change", "% Change"]
     df = pd.concat(data, axis=1, keys=headers)
     return df
 
 
 def lose():
     gain = stock_info.get_day_losers()[:10]
-    data = [gain["Symbol"], gain["Name"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
-    headers = ["Symbol", "Name", "Price", "Change", "% Change"]
+    data = [gain["Symbol"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
+    headers = ["Symbol", "Price", "Change", "% Change"]
     df = pd.concat(data, axis=1, keys=headers)
     return df
 
 
 def active():
     gain = stock_info.get_day_most_active()[:10]
-    data = [gain["Symbol"], gain["Name"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
-    headers = ["Symbol", "Name", "Price", "Change", "% Change"]
+    data = [gain["Symbol"], gain["Price (Intraday)"], gain["Change"], gain["% Change"]]
+    headers = ["Symbol", "Price", "Change", "% Change"]
     df = pd.concat(data, axis=1, keys=headers)
     return df
 
@@ -284,34 +284,8 @@ T = read_csv(r"app/static/Top25.csv")
 
 def stock_cards(tick):
     dy = []
-    for t in tick[:6]:
+    for t in tick[:9]:
         try:
-            dat = load_data(t[0], '1mo', '1d', False)
-
-            def what():
-                if live_prices(t[0])[2] > dat.Close.iloc[0]:
-                    return 'green'
-                elif live_prices(t[0])[2] < dat.Close.iloc[0]:
-                    return 'red'
-                else:
-                    return 'grey'
-
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=list(dat.index),
-                                     y=list(dat.Close),
-                                     showlegend=False,
-                                     line=dict(color=what(), width=1)))
-            fig.update_layout(
-                autosize=False,
-                height=200,
-                width=200,
-                xaxis=dict(fixedrange=True),
-                yaxis=dict(fixedrange=True),
-                margin=dict(
-                    l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-            ),
             fig2 = go.Figure()
             fig2.add_trace(go.Indicator(mode="number+delta", value=round(live_prices(t[0])[2], 2),
                                         number={'valueformat': 'f', 'suffix': "USD", "font": {"size": 20}},
@@ -320,7 +294,7 @@ def stock_cards(tick):
                                         align="left", ), ),
             fig2.update_layout(
                 autosize=False,
-                height=100,
+                height=50,
                 margin=dict(
                     l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -328,31 +302,16 @@ def stock_cards(tick):
             ),
             dy.append(dbc.Col(dbc.Card(
                 [
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.CardHeader(
-                                    html.Div(children=[dcc.Graph(figure=fig)]),
-                                ),
-                                width=7,
-                            ),
-                            dbc.Col(
-                                dbc.CardBody(
-                                    [html.H5(str(t[1]) + ":" + str(t[0]), className="card-title",style={"font-size":"medium"}),
-                                     html.Div(children=[dcc.Graph(figure=fig2, config={
-                                         'displayModeBar': False
-                                     }, style={'height': 'auto', 'width': 'auto'})]),
-                                     html.A(dbc.Button("View"), href='/das/?val=' + str(t[0]))
-                                     ]
-                                ),
-                                width=5
-                            ),
-                        ],
-                        className="g-0 d-flex align-items-center",
-                    ), ],
-                className="mb-3",
-                style={"maxWidth": "540px"},
-            ),xs=12, sm=12, md=12, lg=6, xl=6))
+                    dbc.CardImg(src="../static/Images/{}.png".format(t[0]),top=True,style={"width":"10rem","height":"5rem"}),
+                    dbc.CardBody(
+                        [html.H5(str(t[1]) + ":" + str(t[0]), className="card-title",style={"font-size":"medium","padding-bottom":"0px"}),
+                         html.Div(children=[dcc.Graph(figure=fig2, config={
+                             'displayModeBar': False
+                         }, style={'height': 'auto', 'width': 'auto'})]),
+                         html.A(dbc.Button("View"), href='/das/?val=' + str(t[0]))
+                         ]
+                    ),],style={"width": "12rem","height":"15rem"},
+            ),xs=6, sm=6, md=6, lg=4, xl=4))
         except:
             pass
     return dy

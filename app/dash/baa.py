@@ -49,12 +49,12 @@ def dash_app(server):
              ),
              dcc.Interval(
                  id='tilt',
-                 interval=10000,  # in milliseconds
+                 interval=120000,  # in milliseconds
                  n_intervals=0
              ),
              dcc.Interval(
                  id='milian',
-                 interval=1 * 60000,  # in milliseconds
+                 interval=1 * 120000,  # in milliseconds
                  n_intervals=0
              ),
              html.Div(html.Ul(children=[html.Li(html.Div(className="dropdown", children=[
@@ -94,14 +94,14 @@ def dash_app(server):
                          config={
                              'displayModeBar': False
                          },
-                         style={'width': '98h', "-webkit-overflow-scrolling": "touch"},
+                         style={'width': '95h','overflowY': 'scroll'},
                      ),
                      dcc.Graph(
                          id="vol",
                          config={
                              'displayModeBar': False
                          },
-                         style={'width': '98h', "-webkit-overflow-scrolling": "touch"},
+                         style={'width': '95h','overflowY': 'scroll',"padding-bottom":"2px"},
                      )
                  ]), xs=12, sm=12, md=12, lg=8, xl=8),
 
@@ -190,13 +190,22 @@ def dash_app(server):
                          html.Div(id="recc")]), width={"size": 12}, xs=12, sm=12, md=12, lg=3, xl=3),
                      dbc.Col(html.Div([
                          html.H4('Social Media Trends:'),
-                         dcc.Graph(
+                         dbc.Row([dbc.Col(dcc.Graph(
                              id="social",
                              config={
                                  'displayModeBar': False
                              },
                              style={'width': '98h'},
-                         ),
+                         ),xs=6, sm=6, md=6, lg=6, xl=6),
+                         dbc.Col( dcc.Graph(
+                             id="trends",
+                             config={
+                                 'displayModeBar': False
+                             },
+                             style={'width': '98h'},
+                         ),xs=6, sm=6, md=6, lg=6, xl=6),]),
+
+
                      ]), xs=12, sm=12, md=12, lg=6, xl=6)
 
                  ]),
@@ -591,45 +600,75 @@ def dash_app(server):
             reddit = sm(search[5:])["red_add"]
             twitter = sm(search[5:])["twi_add"]
             overall = sm(search[5:])["o_sum"]
-            red_m = sm(search[5:])["red_mention"]
-            twi_m = sm(search[5:])["twi_mention"]
-            mention = sm(search[5:])["mention"]
-            fig = make_subplots(rows=1, cols=2, subplot_titles=("Sentiment Score", "Mentions"))
+            fig = go.Figure()
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(reddit),
                                      visible=True,
                                      name="Reddit",
                                      showlegend=True,
-                                     line=dict(color='red', width=1)), row=1, col=1)
+                                     line=dict(color='red', width=1)))
 
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(twitter),
                                      visible=True,
                                      name="Twitter",
-                                     line=dict(color='blue', width=1)), row=1, col=1)
+                                     line=dict(color='blue', width=1)))
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(overall),
                                      visible=True,
                                      name="Overall",
-                                     line=dict(color='black', width=1)), row=1, col=1)
+                                     line=dict(color='black', width=1)))
+            fig.update_layout(
+                autosize=False,
+                hovermode="x unified",
+                height=250,
+                yaxis=dict(fixedrange=True, ),
+                xaxis=dict(
+                    fixedrange=True,
+                    type='date'),
+                margin=dict(
+                    l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(
+                    x=0,
+                    y=1,
+                    traceorder="normal",
+
+                ),
+            ),
+        return fig
+
+    @app.callback(
+        Output('trends', 'figure'),
+        Input('url', 'search'), )
+    def social(search):
+        if search[5:] is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            indices = sm(search[5:]).index
+            red_m = sm(search[5:])["red_mention"]
+            twi_m = sm(search[5:])["twi_mention"]
+            mention = sm(search[5:])["mention"]
+            fig = go.Figure()
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(red_m),
                                      visible=True,
                                      name="Reddit",
                                      showlegend=False,
-                                     line=dict(color='red', width=1)), row=1, col=2)
+                                     line=dict(color='red', width=1)))
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(twi_m),
                                      visible=True,
                                      name="Twitter",
                                      showlegend=False,
-                                     line=dict(color='blue', width=1)), row=1, col=2)
+                                     line=dict(color='blue', width=1)))
             fig.add_trace(go.Scatter(x=list(indices),
                                      y=list(mention),
                                      visible=True,
                                      name="Overall",
                                      showlegend=False,
-                                     line=dict(color='black', width=1)), row=1, col=2)
+                                     line=dict(color='black', width=1)))
             fig.update_layout(
                 autosize=False,
                 hovermode="x unified",
